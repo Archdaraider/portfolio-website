@@ -7,12 +7,13 @@ export type Project = {
   id: string;
   title: string;
   hook: string;
-  impact: string;
+  impact: string[];
   stack: string[];
   links: PortfolioLink[];
+  // Primary destination when the 3D model is clicked (repo or live site).
+  modelHref: string;
   modelPath: string;
   fallbackImage: string;
-  modelLabel: string;
 };
 
 export type ExperienceItem = {
@@ -22,6 +23,19 @@ export type ExperienceItem = {
   summary: string;
 };
 
+export type Certification = {
+  title: string;
+  issuer: string;
+  year: string;
+};
+
+export type AboutSlide = {
+  title: string;
+  image: string;
+  alt: string;
+  objectPosition: string;
+};
+
 export type SwapPoint = {
   key: string;
   path: string;
@@ -29,167 +43,207 @@ export type SwapPoint = {
 };
 
 export const profile = {
-  name: "Justin",
-  eyebrow: "NUS Business AI Systems | Year 2",
+  name: "Justin Goh",
+  eyebrow: "NUS Business AI Systems Penultimate Year",
   graduation: "Graduating Dec 2027",
   positioning:
-    "First-principles product engineering and novel AI systems.",
+    "AI-focused product builder. I turn ambiguous problems into shippable systems.",
   summary:
-    "I sit between engineering and product, where vague problems become shippable systems. I like fast prototypes, precise research, and ideas that are slightly too specific to be template work.",
+    "I bridge product and engineering, turning user discovery into practical AI systems.",
   heroMetrics: [
-    "Founder & Lead, LutherAIBot",
-    "Product / Research Intern, IMDA Singapore",
-    "Software Engineer, logistics freight",
+    "Product / QoE Research Intern at IMDA",
+    "Software Engineer Intern at CWT Globelink",
+    "Teaching Assistant at NUS Computing",
   ],
-  // SWAP: Replace with a real hero render or portrait-adjacent abstract image.
-  heroBackdropImage: "/images/hero-warm-abstract.png",
+  portraitImage: "/images/justin-profile.png",
+  // Used behind the About section as supporting context.
+  aboutImage: "/images/hackathon.png",
 };
+
+// Sliding marquee content: capabilities first, then credentials.
+export const marquee = {
+  skills: [
+    "Product Discovery",
+    "User Research",
+    "First-Principles Scoping",
+    "Python",
+    "SQL",
+    "Java",
+    "Flask",
+    "Django",
+    "React",
+    "TypeScript",
+    "LLM / GenAI Integration",
+    "Prompt Design",
+    "Docker",
+    "n8n",
+    "Tableau",
+    "Roadmapping",
+    "Build-vs-Buy Analysis",
+  ],
+  certifications: [
+    "IBM Product Management — Professional Certification",
+    "Google AI — Professional Certification",
+    "NUS Product Club — Member",
+  ],
+};
+
+export const certifications: Certification[] = [
+  {
+    title: "Product Management Professional Certification",
+    issuer: "IBM",
+    year: "2026",
+  },
+  {
+    title: "AI Professional Certification",
+    issuer: "Google",
+    year: "2026",
+  },
+];
+
+export const aboutSlides: AboutSlide[] = [
+  {
+    title: "ShopBack Product Managers x NUS Entrepreneur Society",
+    image: "/images/shopback-pmtalk.jpg",
+    alt: "Justin with speakers and students at the ShopBack Product Managers x NUS Entrepreneur Society event",
+    objectPosition: "center center",
+  },
+  {
+    title: "NUS InterHall Hackathon",
+    image: "/images/nus-interhall-hackathon.jpg",
+    alt: "Justin and teammates reviewing a laptop during the NUS InterHall Hackathon",
+    objectPosition: "center center",
+  },
+  {
+    title: "Regional Codex Hackathon",
+    image: "/images/hackathon.png",
+    alt: "Justin and team building at the Regional Codex Hackathon",
+    objectPosition: "center 36%",
+  },
+];
 
 export const aboutPrinciples = [
   {
-    title: "Build fast",
-    copy: "I prefer a working system over a meeting about a hypothetical system. Tastefully, of course.",
+    title: "Discovery before code",
+    copy: "I interview the people inside the workflow first — advisors, operators, stakeholders — and map the real pain before a line gets written.",
   },
   {
-    title: "Reason from first principles",
-    copy: "Strip away the fashionable layer, find the actual constraint, then build around that.",
+    title: "First principles, then depth",
+    copy: "Strip the regulatory or product question down to its actual constraint, then bring the technical depth to scope and validate the answer.",
   },
   {
-    title: "Novel over derivative",
-    copy: "If the result could have come from a template, it probably needs another pass.",
+    title: "Ship, then measure",
+    copy: "Get something concrete into production and track the before-and-after. A cut cycle-time is worth more than a tidy hypothesis.",
   },
 ];
 
 export const projects: Project[] = [
   {
-    id: "luther-ai-bot",
-    title: "LutherAIBot",
-    hook: "A conversational bridge between legacy data and modern inference.",
-    impact:
-      "Founded and led a bot project that turns scattered internal knowledge into a cleaner question-answering flow. The interesting part is not that it chats, but that it makes the right context show up before everyone forgets what they were looking for.",
-    stack: ["Python", "FastAPI", "Vector search", "LLM orchestration"],
-    links: [
-      // SWAP: Replace placeholder LutherAIBot links with live repo/case study URLs.
-      { label: "View project", href: "#" },
-      { label: "Technical notes", href: "#" },
+    id: "grounded",
+    title: "Grounded",
+    hook: "Real-time interview coaching that watches how you actually answer.",
+    impact: [
+      "Scores speech, content, and body-language signals in real time.",
+      "Turns each interview into a resume-aware coaching report.",
+      "Runs on Flask, Socket.IO, MediaPipe, Groq, OAuth, and Stripe tiers.",
     ],
-    // SWAP: Drop the final LutherAIBot .glb here.
-    modelPath: "/models/luther-ai-bot.glb",
-    // SWAP: Replace with a final LutherAIBot fallback render.
-    fallbackImage: "/images/luther-ai-bot-fallback.png",
-    modelLabel: "assistant core",
+    stack: ["Flask", "Socket.IO", "Groq", "MediaPipe", "Stripe"],
+    links: [{ label: "Live app", href: "https://getgrounded.com" }],
+    modelHref: "https://getgrounded.com",
+    modelPath: "/models/grounded.glb",
+    fallbackImage: "/images/grounded-fallback.png",
   },
   {
     id: "claim-integrity-agent",
     title: "Claim Integrity Agent",
-    hook: "Real-time risk scoring for the refund economy.",
-    impact:
-      "A refund-fraud detection scaffold for scoring claim risk as events arrive, then explaining why a case deserves attention. The point is not to shout fraud at everything. The point is to make uncertainty legible.",
-    stack: ["TypeScript", "Risk scoring", "Event streams", "PostgreSQL"],
-    links: [
-      // SWAP: Replace placeholder Claim Integrity links with final artefacts.
-      { label: "Case study", href: "#" },
-      { label: "System map", href: "#" },
+    hook: "An explainable risk score for the refund economy.",
+    impact: [
+      "Combines vision plausibility, image reuse, and behaviour signals.",
+      "Produces an explainable 0-100 refund-risk score for reviewers.",
+      "Keeps legitimate claims low-risk with regression-gated scoring.",
     ],
-    // SWAP: Drop the final Claim Integrity Agent .glb here.
+    stack: ["React", "TypeScript", "Express", "OpenAI Vision"],
+    links: [
+      {
+        label: "Repository",
+        href: "https://github.com/onepang04/openai-x-sea-hackathon-group-14",
+      },
+    ],
+    modelHref: "https://github.com/onepang04/openai-x-sea-hackathon-group-14",
     modelPath: "/models/claim-integrity-agent.glb",
-    // SWAP: Replace with a final Claim Integrity fallback render.
     fallbackImage: "/images/claim-integrity-agent-fallback.png",
-    modelLabel: "risk lattice",
   },
   {
-    id: "grounded",
-    title: "Grounded",
-    hook: "On-device interview coaching without the privacy trade-off.",
-    impact:
-      "A coaching app concept that analyses communication signals locally, then turns them into usable feedback for high-stakes interviews. It is deliberately boring about privacy, which is the correct kind of boring.",
-    stack: ["React", "Python", "On-device AI", "Signal analysis"],
-    links: [
-      // SWAP: Replace placeholder Grounded links with demo/product URLs.
-      { label: "View build", href: "#" },
-      { label: "Privacy notes", href: "#" },
+    id: "luther-ai-bot",
+    title: "LutherAIBot",
+    hook: "Vertical B2B AI SaaS for financial advisors.",
+    impact: [
+      "Mapped advisor and PA workflows through discovery interviews.",
+      "Scoped a PA-first MVP for client logistics and CRM automation.",
+      "Kept the agent workflow practical for regulated PDPA contexts.",
     ],
-    // SWAP: Drop the final Grounded .glb here.
-    modelPath: "/models/grounded.glb",
-    // SWAP: Replace with a final Grounded fallback render.
-    fallbackImage: "/images/grounded-fallback.png",
-    modelLabel: "local signal",
+    stack: ["Product Management", "OpenClaw", "Agent Platform", "PDPA"],
+    links: [
+      { label: "Website", href: "https://lutheraibot.com" },
+      { label: "OpenClaw", href: "https://openclaw.ai/" },
+    ],
+    modelHref: "https://lutheraibot.com",
+    modelPath: "/models/luther-ai-bot.glb",
+    fallbackImage: "/images/luther-ai-bot-fallback.png",
   },
   {
-    id: "imda-pdd",
-    title: "IMDA / Punggol Digital District",
-    hook: "User research and quality-of-experience benchmarking for a smart district.",
-    impact:
-      "Product and research work across Punggol Digital District contexts, with attention to how people actually experience infrastructure once the diagram has left the slide. Good benchmarks are less glamorous than demos, and far more useful.",
-    stack: ["User research", "QoE benchmarking", "Product analysis", "Singapore"],
-    links: [
-      // SWAP: Replace placeholder IMDA/PDD links with public work or notes.
-      { label: "Overview", href: "#" },
-      { label: "Research notes", href: "#" },
+    id: "auroramart",
+    title: "AuroraMart",
+    hook: "An e-commerce platform mapped from discovery to checkout.",
+    impact: [
+      "Built a Django/SQLite e-commerce flow from discovery to checkout.",
+      "Documented authentication, inventory states, and payment edge cases.",
+      "Packaged the NUS IS2108 build with launch docs and user-flow maps.",
     ],
-    // SWAP: Drop the final IMDA/PDD .glb here.
-    modelPath: "/models/imda-pdd.glb",
-    // SWAP: Replace with a final IMDA/PDD fallback render.
-    fallbackImage: "/images/imda-pdd-fallback.png",
-    modelLabel: "district mesh",
+    stack: ["Django", "SQLite", "RESTful APIs", "Python"],
+    links: [{ label: "Repository", href: "https://github.com/Archdaraider/IS2108" }],
+    modelHref: "https://github.com/Archdaraider/IS2108",
+    modelPath: "/models/auroramart.glb",
+    fallbackImage: "/images/auroramart-fallback.png",
   },
 ];
 
 export const experience: ExperienceItem[] = [
   {
-    role: "Product / Research Intern",
-    organisation: "IMDA Singapore",
-    period: "2026",
+    role: "Product Management & QoE Research Intern",
+    organisation: "IMDA Singapore — Punggol Digital District",
+    period: "Jan 2026 – Jun 2026",
     summary:
-      "Worked on Punggol Digital District research, user insight synthesis, and quality-of-experience benchmarking.",
+      "Owned the quality-of-experience benchmarking workstream for the district's autonomous-robotics rollout — turning an ambiguous regulatory question into a structured testing framework, running UAT across Umlaut, Accenture, IMDA and GovTech, and producing go/no-go recommendations from experiments on real hardware.",
   },
   {
-    role: "Software Engineer",
-    organisation: "Logistics freight company",
-    period: "2025",
+    role: "Software Engineer Intern",
+    organisation: "CWT Globelink (Connecting World Trade)",
+    period: "Feb 2024 – Apr 2024",
     summary:
-      "Built operational software in a domain where edge cases arrive by truck and do not apologise.",
+      "Found the highest-leverage bottleneck in the reporting pipeline through stakeholder interviews and shipped a Gen-AI-assisted query layer (Oracle APEX, PL/SQL) that cut report-generation time by ~20%, then authored a build-vs-buy analysis on internal tooling alternatives.",
   },
   {
-    role: "Founder & Lead",
-    organisation: "LutherAIBot",
-    period: "2024 to present",
+    role: "Undergraduate Teaching Assistant — BT2102",
+    organisation: "National University of Singapore",
+    period: "Aug 2025 – May 2026",
     summary:
-      "Led product direction and engineering for an AI assistant project focused on useful retrieval, not theatre.",
+      "Selected across multiple semesters to lead weekly labs for 30+ first-year students on SQL, relational modelling, and Tableau — practising the craft of explaining technical reasoning to non-technical audiences.",
   },
 ];
 
 export const contact = {
-  // SWAP: Replace with Justin's real email.
-  email: "hello@example.com",
-  // SWAP: Replace with Justin's real LinkedIn URL.
-  linkedIn: "#",
-  // SWAP: Replace with Justin's real GitHub URL.
-  github: "#",
-  // SWAP: Replace with the final resume PDF path.
-  resumePath: "/resume-placeholder.pdf",
+  email: "justingohzk@gmail.com",
+  linkedIn: "https://linkedin.com/in/gohgohthejustin",
+  github: "https://github.com/Archdaraider",
+  resumePath: "/JustinGoh_Resume.pdf",
 };
 
 export const swapPoints: SwapPoint[] = [
   {
-    key: "heroBackdropImage",
-    path: "src/data/portfolio.ts",
-    note: "Replace the hero abstract image path with a final portrait, render, or art-directed bitmap.",
-  },
-  {
-    key: "lutherAIBotModel",
-    path: "public/models/luther-ai-bot.glb",
-    note: "Drop the final LutherAIBot model at this path.",
-  },
-  {
-    key: "lutherAIBotLinks",
-    path: "src/data/portfolio.ts",
-    note: "Replace LutherAIBot project and technical-note href placeholders.",
-  },
-  {
-    key: "lutherAIBotFallback",
-    path: "public/images/luther-ai-bot-fallback.png",
-    note: "Replace the generated LutherAIBot fallback still.",
+    key: "groundedModel",
+    path: "public/models/grounded.glb",
+    note: "Drop the final Grounded model at this path (Blender export).",
   },
   {
     key: "claimIntegrityAgentModel",
@@ -197,63 +251,18 @@ export const swapPoints: SwapPoint[] = [
     note: "Drop the final Claim Integrity Agent model at this path.",
   },
   {
-    key: "claimIntegrityAgentLinks",
+    key: "lutherAIBotModel",
+    path: "public/models/luther-ai-bot.glb",
+    note: "Drop the final LutherAIBot model at this path.",
+  },
+  {
+    key: "auroraMartModel",
+    path: "public/models/auroramart.glb",
+    note: "Drop the final AuroraMart model at this path.",
+  },
+  {
+    key: "projectLinks",
     path: "src/data/portfolio.ts",
-    note: "Replace Claim Integrity case-study and system-map href placeholders.",
-  },
-  {
-    key: "claimIntegrityAgentFallback",
-    path: "public/images/claim-integrity-agent-fallback.png",
-    note: "Replace the generated Claim Integrity fallback still.",
-  },
-  {
-    key: "groundedModel",
-    path: "public/models/grounded.glb",
-    note: "Drop the final Grounded model at this path.",
-  },
-  {
-    key: "groundedLinks",
-    path: "src/data/portfolio.ts",
-    note: "Replace Grounded build and privacy-note href placeholders.",
-  },
-  {
-    key: "groundedFallback",
-    path: "public/images/grounded-fallback.png",
-    note: "Replace the generated Grounded fallback still.",
-  },
-  {
-    key: "imdaPddModel",
-    path: "public/models/imda-pdd.glb",
-    note: "Drop the final IMDA/PDD model at this path.",
-  },
-  {
-    key: "imdaPddLinks",
-    path: "src/data/portfolio.ts",
-    note: "Replace IMDA/PDD overview and research-note href placeholders.",
-  },
-  {
-    key: "imdaPddFallback",
-    path: "public/images/imda-pdd-fallback.png",
-    note: "Replace the generated IMDA/PDD fallback still.",
-  },
-  {
-    key: "contactEmail",
-    path: "src/data/portfolio.ts",
-    note: "Replace hello@example.com with Justin's real email.",
-  },
-  {
-    key: "contactLinkedIn",
-    path: "src/data/portfolio.ts",
-    note: "Replace the LinkedIn placeholder URL.",
-  },
-  {
-    key: "contactGitHub",
-    path: "src/data/portfolio.ts",
-    note: "Replace the GitHub placeholder URL.",
-  },
-  {
-    key: "resumePath",
-    path: "src/data/portfolio.ts",
-    note: "Replace /resume-placeholder.pdf with the final resume PDF.",
+    note: "Replace the github.com stub hrefs (links + modelHref) with real repo/live URLs per project.",
   },
 ];
