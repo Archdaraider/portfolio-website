@@ -1579,6 +1579,36 @@ button:focus-visible {
     order: initial;
   }
 
+  .project-panel {
+    min-height: auto;
+    align-items: start;
+    gap: clamp(1rem, 5vw, 1.75rem);
+    padding-block: clamp(3.5rem, 12vw, 5.5rem);
+  }
+
+  .project-copy,
+  .project-model,
+  .project-panel.is-reverse .project-copy,
+  .project-panel.is-reverse .project-model {
+    grid-row: auto;
+  }
+
+  .project-copy {
+    padding-block: 0;
+    background: none;
+  }
+
+  .project-model {
+    width: 100%;
+    min-height: clamp(320px, 92vw, 480px);
+    overflow: visible;
+  }
+
+  .model-stage,
+  .model-canvas-mount {
+    min-height: inherit;
+  }
+
   .work-split {
     grid-template-columns: 1fr;
   }
@@ -1598,8 +1628,7 @@ button:focus-visible {
   }
 
   .hero-visual,
-  .about-visual,
-  .project-model {
+  .about-visual {
     min-height: 360px;
   }
 
