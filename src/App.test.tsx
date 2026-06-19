@@ -163,6 +163,29 @@ describe("App", () => {
     expect(observe.mock.calls.length).toBeGreaterThan(8);
   });
 
+  it("keeps the custom scroll wheel fixed on mobile", async () => {
+    // @ts-expect-error Node built-in types are not included in the app tsconfig.
+    const { readFileSync } = (await import("node:fs")) as {
+      readFileSync: (path: string, encoding: string) => string;
+    };
+    const stylesCss = readFileSync("src/styles.css", "utf8");
+
+    expect(stylesCss).toMatch(/\.scroll-wheel\s*{[^}]*position:\s*fixed;/s);
+    expect(stylesCss).not.toMatch(
+      /@media\s*\(max-width:\s*900px\)\s*{[^}]*\.scroll-wheel\s*{[^}]*display:\s*none/s,
+    );
+  });
+
+  it("shows January 2027 internship and full-time availability", () => {
+    window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
+
+    render(<App />);
+
+    expect(
+      screen.getByText("2027 January / Internships / Full-Time"),
+    ).toBeInTheDocument();
+  });
+
   it("skips the keycap intro after it has been seen in the current session", () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
 

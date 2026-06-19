@@ -737,7 +737,7 @@ function Contact() {
     <section id="contact" className="contact section-shell" aria-label="Contact">
       <div className="contact-meta reveal reveal-left">
         <p>Availability</p>
-        <strong>Internships / select builds</strong>
+        <strong>2027 January / Internships / Full-Time</strong>
         <p>Location</p>
         <strong>Singapore / remote</strong>
       </div>

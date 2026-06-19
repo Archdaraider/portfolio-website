@@ -1534,7 +1534,23 @@ button:focus-visible {
 
 @media (max-width: 900px) {
   .scroll-wheel {
+    right: 8px;
+    gap: 6px;
+    opacity: 0.82;
+  }
+
+  .scroll-wheel-rail {
+    height: min(42vh, 280px);
+  }
+
+  .scroll-wheel-arrow,
+  .scroll-wheel-label {
     display: none;
+  }
+
+  .scroll-wheel-knob-count,
+  .scroll-wheel-mark-label {
+    right: 20px;
   }
 
   .site-nav {
