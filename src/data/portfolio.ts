@@ -295,21 +295,6 @@ export const aboutSlides: AboutSlide[] = [
   },
 ];
 
-export const aboutPrinciples = [
-  {
-    title: "Discovery before code",
-    copy: "I interview the people inside the workflow first — advisors, operators, stakeholders — and map the real pain before a line gets written.",
-  },
-  {
-    title: "First principles, then depth",
-    copy: "Strip the regulatory or product question down to its actual constraint, then bring the technical depth to scope and validate the answer.",
-  },
-  {
-    title: "Ship, then measure",
-    copy: "Get something concrete into production and track the before-and-after. A cut cycle-time is worth more than a tidy hypothesis.",
-  },
-];
-
 export const projects: Project[] = [
   {
     id: "grounded",

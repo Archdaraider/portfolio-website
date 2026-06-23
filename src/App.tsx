@@ -10,7 +10,6 @@ import {
 } from "motion/react";
 import {
   aboutSlides,
-  aboutPrinciples,
   contact,
   experience,
   marquee,
@@ -571,15 +570,6 @@ function About() {
         </p>
       </div>
       <AboutSlideshow />
-      <div className="principles">
-        {aboutPrinciples.map((principle, index) => (
-          <article className="principle-card reveal" key={principle.title}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <h3>{principle.title}</h3>
-            <p>{principle.copy}</p>
-          </article>
-        ))}
-      </div>
     </section>
   );
 }

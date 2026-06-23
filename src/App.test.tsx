@@ -238,6 +238,9 @@ describe("App", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /About/i })).toBeInTheDocument();
+    expect(screen.queryByText("Discovery before code")).not.toBeInTheDocument();
+    expect(screen.queryByText("First principles, then depth")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ship, then measure")).not.toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: /^Work$/i }),
     ).toBeInTheDocument();

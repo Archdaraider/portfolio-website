@@ -974,28 +974,17 @@ button:focus-visible {
   min-height: 440px;
 }
 
-.principles {
-  grid-column: 4 / 13;
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 1rem;
-  margin-top: 3rem;
-}
-
-.principle-card,
 .timeline-item {
   border-top: 1px solid var(--line);
   padding-top: 1.4rem;
 }
 
-.principle-card span,
 .timeline-item span {
   font-family: "JetBrains Mono", "Cascadia Mono", monospace;
   font-size: 0.74rem;
   color: var(--terracotta-dark);
 }
 
-.principle-card h3,
 .timeline-item h3,
 .project-copy h3 {
   margin: 1rem 0 0.6rem;
@@ -1004,7 +993,6 @@ button:focus-visible {
   letter-spacing: 0;
 }
 
-.principle-card p,
 .timeline-item p {
   color: var(--muted);
   line-height: 1.65;
@@ -1701,7 +1689,6 @@ button:focus-visible {
   .section-index,
   .about-copy,
   .about-visual,
-  .principles,
   .projects-intro > div:last-child,
   .skill-atlas-intro,
   .skill-atlas-board,
@@ -1771,10 +1758,6 @@ button:focus-visible {
   .hero-visual,
   .about-visual {
     min-height: 360px;
-  }
-
-  .principles {
-    grid-template-columns: 1fr;
   }
 
   .skill-atlas-intro {
