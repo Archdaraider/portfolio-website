@@ -16,6 +16,7 @@ import {
   marquee,
   profile,
   projects,
+  skillGroups,
   type Project,
 } from "./data/portfolio";
 
@@ -38,7 +39,10 @@ const NUS_BAIS_HREF = "https://www.comp.nus.edu.sg/programmes/ug/bais/";
 
 function App() {
   const prefersReducedMotion = useReducedMotion();
+  const lenisRef = useRef<Lenis | null>(null);
   const [workView, setWorkView] = useState<WorkView>("projects");
+  const [pendingWorkScrollTarget, setPendingWorkScrollTarget] =
+    useState<WorkView | null>(null);
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -61,6 +65,50 @@ function App() {
   useScrollReveal(prefersReducedMotion, workView);
 
   useEffect(() => {
+    if (pendingWorkScrollTarget !== workView) {
+      return;
+    }
+
+    let frame = 0;
+    let timer = 0;
+    let didScroll = false;
+    const targetId = getWorkViewTargetId(pendingWorkScrollTarget);
+    const scrollToSelectedWork = () => {
+      if (didScroll) {
+        return;
+      }
+      const target = document.getElementById(targetId);
+      if (!target) {
+        return;
+      }
+      didScroll = true;
+      if (lenisRef.current && !prefersReducedMotion) {
+        lenisRef.current.scrollTo(target, { offset: -96, duration: 1.05 });
+      } else {
+        target.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      }
+      window.setTimeout(() => setPendingWorkScrollTarget(null), 0);
+    };
+
+    if (typeof window.requestAnimationFrame === "function") {
+      frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(scrollToSelectedWork);
+      });
+      timer = window.setTimeout(scrollToSelectedWork, 180);
+      return () => {
+        window.cancelAnimationFrame(frame);
+        window.clearTimeout(timer);
+      };
+    }
+
+    timer = window.setTimeout(scrollToSelectedWork, 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingWorkScrollTarget, prefersReducedMotion, workView]);
+
+  useEffect(() => {
     if (prefersReducedMotion || typeof ResizeObserver === "undefined") {
       return;
     }
@@ -70,6 +118,7 @@ function App() {
       easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
       smoothWheel: true,
     });
+    lenisRef.current = lenis;
 
     let frame = 0;
     const raf = (time: number) => {
@@ -80,6 +129,7 @@ function App() {
     frame = requestAnimationFrame(raf);
     return () => {
       cancelAnimationFrame(frame);
+      lenisRef.current = null;
       lenis.destroy();
     };
   }, [prefersReducedMotion]);
@@ -97,6 +147,11 @@ function App() {
     setShowIntro(true);
   };
 
+  const selectWork = (view: WorkView) => {
+    setWorkView(view);
+    setPendingWorkScrollTarget(view);
+  };
+
   return (
     <main>
       <Suspense fallback={null}>
@@ -112,11 +167,11 @@ function App() {
         }`}
       >
         <ScrollWheel progress={progress} />
-        <SiteNav onSelectWork={setWorkView} onOpenIntro={reopenIntro} />
-        <Hero onSelectWork={setWorkView} />
-        <Marquee />
+        <SiteNav onSelectWork={selectWork} onOpenIntro={reopenIntro} />
+        <Hero onSelectWork={selectWork} />
+        <SkillAtlas />
         <About />
-        <Work view={workView} onSelect={setWorkView} />
+        <Work view={workView} onSelect={selectWork} />
         <Contact />
         <DockBar />
       </div>
@@ -133,6 +188,10 @@ function scrollToTop(prefersReducedMotion: boolean | null) {
   }
 
   window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
+}
+
+function getWorkViewTargetId(view: WorkView) {
+  return view === "projects" ? projects[0]?.id ?? "work" : "experience-0";
 }
 
 function useScrollReveal(prefersReducedMotion: boolean | null, workView: WorkView) {
@@ -298,14 +357,20 @@ function SiteNav({
         <a
           href="#work"
           className="magnetic"
-          onClick={() => onSelectWork("projects")}
+          onClick={(event) => {
+            event.preventDefault();
+            onSelectWork("projects");
+          }}
         >
           Projects
         </a>
         <a
           href="#work"
           className="magnetic"
-          onClick={() => onSelectWork("experience")}
+          onClick={(event) => {
+            event.preventDefault();
+            onSelectWork("experience");
+          }}
         >
           Experience
         </a>
@@ -363,7 +428,10 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
           <a
             href="#work"
             className="button primary magnetic"
-            onClick={() => onSelectWork("projects")}
+            onClick={(event) => {
+              event.preventDefault();
+              onSelectWork("projects");
+            }}
           >
             <span>View projects</span>
             <span aria-hidden="true" className="button-mark">
@@ -373,7 +441,10 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
           <a
             href="#work"
             className="button secondary magnetic"
-            onClick={() => onSelectWork("experience")}
+            onClick={(event) => {
+              event.preventDefault();
+              onSelectWork("experience");
+            }}
           >
             <span>View experiences</span>
             <span aria-hidden="true" className="button-mark">
@@ -396,7 +467,7 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
   );
 }
 
-function Marquee({ large = false }: { large?: boolean }) {
+export function Marquee({ large = false }: { large?: boolean }) {
   const items = [...marquee.skills, ...marquee.certifications];
   const loop = [...items, ...items];
 
@@ -419,6 +490,62 @@ function Marquee({ large = false }: { large?: boolean }) {
                 /
               </span>
             </span>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SkillAtlas() {
+  return (
+    <section
+      id="skills"
+      className="skill-atlas section-shell"
+      aria-label="Skill map"
+    >
+      <div className="section-index reveal reveal-left">Skills</div>
+      <div className="skill-atlas-intro reveal">
+        <p className="eyebrow">Capability map</p>
+        <h2>What I bring into a room.</h2>
+        <p>
+          A recruiter-friendly view of the same stack: product judgment first,
+          then the technical surface area that lets the work ship.
+        </p>
+      </div>
+      <div className="skill-atlas-board reveal reveal-right">
+        {skillGroups.map((group, index) => {
+          const logos = group.credentials ?? group.logos ?? [];
+          const logoTitles = new Set(logos.map((logo) => logo.title));
+          const visibleSkills = group.credentials
+            ? []
+            : group.skills.filter((skill) => !logoTitles.has(skill));
+
+          return (
+            <article className="skill-lane" key={group.title}>
+              <div className="skill-lane-head">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{group.title}</h3>
+                <p>{group.signal}</p>
+              </div>
+              {logos.length > 0 ? (
+                <div className="credential-logo-grid" aria-label={`${group.title} logos`}>
+                  {logos.map((logo) => (
+                    <figure className="credential-logo-card" key={logo.title}>
+                      <img src={logo.image} alt={logo.alt} />
+                      <figcaption>{logo.title}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : null}
+              {visibleSkills.length > 0 ? (
+                <ul className="skill-chip-list" aria-label={`${group.title} skills`}>
+                  {visibleSkills.map((skill) => (
+                    <li key={skill}>{skill}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </article>
           );
         })}
       </div>
@@ -515,34 +642,6 @@ function Work({
   view: WorkView;
   onSelect: (view: WorkView) => void;
 }) {
-  const [pendingScrollTarget, setPendingScrollTarget] = useState<WorkView | null>(null);
-
-  useEffect(() => {
-    if (pendingScrollTarget !== view) {
-      return;
-    }
-
-    const scrollToWorkTop = () => {
-      document
-        .getElementById("work")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setPendingScrollTarget(null);
-    };
-
-    if (typeof window.requestAnimationFrame === "function") {
-      const frame = window.requestAnimationFrame(scrollToWorkTop);
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    const timer = window.setTimeout(scrollToWorkTop, 0);
-    return () => window.clearTimeout(timer);
-  }, [pendingScrollTarget, view]);
-
-  const goTo = (next: WorkView) => {
-    setPendingScrollTarget(next);
-    onSelect(next);
-  };
-
   return (
     <section id="work" className="work" aria-label="Work">
       <div className="work-head section-shell">
@@ -601,7 +700,7 @@ function Work({
             eyebrow="Don’t stop here"
             heading="Now see the rooms these were built in."
             action="View experiences"
-            onClick={() => goTo("experience")}
+            onClick={() => onSelect("experience")}
           />
         </div>
       ) : (
@@ -612,8 +711,9 @@ function Work({
               <h2 id="experience-title">A short record of useful constraints.</h2>
             </div>
             <div className="timeline">
-              {experience.map((item) => (
+              {experience.map((item, index) => (
                 <article
+                  id={index === 0 ? "experience-0" : undefined}
                   className="timeline-item reveal"
                   key={`${item.role}-${item.organisation}`}
                 >
@@ -627,12 +727,11 @@ function Work({
               ))}
             </div>
           </div>
-          <Marquee large />
           <WorkCrosslink
             eyebrow="Don’t stop here"
             heading="Circle back to the things I’ve built."
             action="View projects"
-            onClick={() => goTo("projects")}
+            onClick={() => onSelect("projects")}
           />
         </div>
       )}
@@ -672,6 +771,7 @@ function ProjectPanel({ project, index }: { project: Project; index: number }) {
 
   return (
     <article
+      id={project.id}
       className={`project-panel section-shell ${isReverse ? "is-reverse" : ""}`}
       aria-labelledby={`${project.id}-title`}
     >

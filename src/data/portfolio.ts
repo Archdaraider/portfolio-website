@@ -29,6 +29,20 @@ export type Certification = {
   year: string;
 };
 
+export type SkillLogo = {
+  title: string;
+  image: string;
+  alt: string;
+};
+
+export type SkillGroup = {
+  title: string;
+  signal: string;
+  skills: string[];
+  logos?: SkillLogo[];
+  credentials?: SkillLogo[];
+};
+
 export type AboutSlide = {
   title: string;
   image: string;
@@ -47,9 +61,9 @@ export const profile = {
   eyebrow: "NUS Business AI Systems Penultimate Year",
   graduation: "Graduating Dec 2027",
   positioning:
-    "AI-focused product builder. I turn ambiguous problems into shippable systems.",
+    "AI-focused product builder. I love solving problems, and creating problems to solve.",
   summary:
-    "I bridge product and engineering, turning user discovery into practical AI systems.",
+    "I also bridge product and engineering, turning user discovery into practical AI systems.",
   heroMetrics: [
     "Product / QoE Research Intern at IMDA",
     "Software Engineer Intern at CWT Globelink",
@@ -63,30 +77,189 @@ export const profile = {
 // Sliding marquee content: capabilities first, then credentials.
 export const marquee = {
   skills: [
-    "Product Discovery",
-    "User Research",
-    "First-Principles Scoping",
+    "Agile / Scrum Methods",
+    "Product Market Research",
+    "User Acceptance Testing",
+    "UI / UX Design",
+    "Roadmapping",
+    "QoE Benchmarking",
+    "Claude Code",
+    "OpenAI Codex",
+    "MCP",
+    "Agent Development",
+    "AI-Native Engineering",
     "Python",
     "SQL",
+    "PL/SQL",
+    "Oracle APEX",
     "Java",
     "Flask",
     "Django",
     "React",
     "TypeScript",
-    "LLM / GenAI Integration",
-    "Prompt Design",
+    "Tableau",
     "Docker",
     "n8n",
-    "Tableau",
-    "Roadmapping",
-    "Build-vs-Buy Analysis",
+    "Stripe",
+    "Railway",
+    "Supabase",
   ],
-  certifications: [
-    "IBM Product Management — Professional Certification",
-    "Google AI — Professional Certification",
-    "NUS Product Club — Member",
-  ],
+  certifications: [] as string[],
 };
+
+export const skillGroups: SkillGroup[] = [
+  {
+    title: "Credentials",
+    signal: "Formal product and AI foundations",
+    skills: [],
+    credentials: [
+      {
+        title: "IBM Product Management",
+        image: "/images/IBM-PM-cert.png",
+        alt: "IBM Product Management Professional Certification logo",
+      },
+      {
+        title: "Google AI Professional",
+        image: "/images/google-ai-professional.png",
+        alt: "Google AI Professional certificate completion logo",
+      },
+      {
+        title: "NUS Product Club",
+        image: "/images/NUS-product-club.png",
+        alt: "NUS Product Club logo",
+      },
+    ],
+  },
+  {
+    title: "Product judgment",
+    signal: "Product Management essential skills",
+    skills: [
+      "Agile / Scrum Methods",
+      "Product Market Research",
+      "User Acceptance Testing",
+      "UI / UX Design",
+      "Roadmapping",
+      "QoE Benchmarking",
+    ],
+  },
+  {
+    title: "AI systems",
+    signal: "Building with agentic tools and AI-native engineering patterns",
+    skills: [
+      "Claude Code",
+      "OpenAI Codex",
+      "MCP",
+      "Agent Development",
+      "AI-Native Engineering",
+    ],
+  },
+  {
+    title: "Product engineering",
+    signal: "Building interfaces and services that can be tested",
+    skills: ["React", "TypeScript", "Flask", "Django", "Java", "Python"],
+    logos: [
+      {
+        title: "Claude Code",
+        image: "/images/claude-code-logo.png",
+        alt: "Claude Code logo",
+      },
+      {
+        title: "OpenAI Codex",
+        image: "/images/openai-codex-logo.png",
+        alt: "OpenAI Codex logo",
+      },
+      {
+        title: "TypeScript",
+        image: "/images/typescript-logo.png",
+        alt: "TypeScript logo",
+      },
+      {
+        title: "Django",
+        image: "/images/django-logo.png",
+        alt: "Django logo",
+      },
+      {
+        title: "Flask",
+        image: "/images/flask-logo.png",
+        alt: "Flask logo",
+      },
+      {
+        title: "Java",
+        image: "/images/java-logo.png",
+        alt: "Java logo",
+      },
+      {
+        title: "Python",
+        image: "/images/python-logo.png",
+        alt: "Python logo",
+      },
+      {
+        title: "React",
+        image: "/images/react-logo.png",
+        alt: "React logo",
+      },
+    ],
+  },
+  {
+    title: "Data fluency",
+    signal: "Reading the system through its data",
+    skills: ["SQL", "Tableau", "Oracle APEX", "PL/SQL"],
+    logos: [
+      {
+        title: "SQL",
+        image: "/images/sql-logo.jpg",
+        alt: "SQL logo",
+      },
+      {
+        title: "Tableau",
+        image: "/images/tableau-logo.png",
+        alt: "Tableau logo",
+      },
+      {
+        title: "Oracle APEX",
+        image: "/images/oracle-apex-logo.jpg",
+        alt: "Oracle APEX logo",
+      },
+      {
+        title: "PL/SQL",
+        image: "/images/plsql-logo.jpg",
+        alt: "Oracle PL/SQL logo",
+      },
+    ],
+  },
+  {
+    title: "Operations",
+    signal: "Connecting the pieces around the product",
+    skills: ["Docker", "n8n", "Stripe", "Railway", "Supabase"],
+    logos: [
+      {
+        title: "Docker",
+        image: "/images/docker-logo.png",
+        alt: "Docker logo",
+      },
+      {
+        title: "n8n",
+        image: "/images/n8n-logo.png",
+        alt: "n8n logo",
+      },
+      {
+        title: "Stripe",
+        image: "/images/stripe-logo.svg",
+        alt: "Stripe logo",
+      },
+      {
+        title: "Railway",
+        image: "/images/railway-logo.svg",
+        alt: "Railway logo",
+      },
+      {
+        title: "Supabase",
+        image: "/images/supabase-logo.png",
+        alt: "Supabase logo",
+      },
+    ],
+  },
+];
 
 export const certifications: Certification[] = [
   {
@@ -148,8 +321,8 @@ export const projects: Project[] = [
       "Runs on Flask, Socket.IO, MediaPipe, Groq, OAuth, and Stripe tiers.",
     ],
     stack: ["Flask", "Socket.IO", "Groq", "MediaPipe", "Stripe"],
-    links: [{ label: "Live app", href: "https://getgrounded.com" }],
-    modelHref: "https://getgrounded.com",
+    links: [{ label: "Live app", href: "https://groundedinterviews.com" }],
+    modelHref: "https://groundedinterviews.com",
     modelPath: "/models/grounded.glb",
     fallbackImage: "/images/grounded-fallback.png",
   },

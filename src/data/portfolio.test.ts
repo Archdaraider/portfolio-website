@@ -1,4 +1,4 @@
-import { aboutSlides, contact, projects, swapPoints } from "./portfolio";
+import { aboutSlides, contact, marquee, projects, skillGroups, swapPoints } from "./portfolio";
 
 describe("portfolio data", () => {
   it("centralises all project assets and links", () => {
@@ -14,7 +14,7 @@ describe("portfolio data", () => {
 
   it("uses the requested project destinations", () => {
     expect(projects.find((project) => project.id === "grounded")?.links).toEqual([
-      { label: "Live app", href: "https://getgrounded.com" },
+      { label: "Live app", href: "https://groundedinterviews.com" },
     ]);
     expect(
       projects.find((project) => project.id === "claim-integrity-agent")?.links,
@@ -72,5 +72,76 @@ describe("portfolio data", () => {
       "NUS InterHall Hackathon",
       "Regional Codex Hackathon",
     ]);
+  });
+
+  it("categorizes every listed skill in the skill map", () => {
+    const categorizedSkills = new Set(
+      skillGroups.flatMap((group) => group.skills),
+    );
+
+    expect(skillGroups[0].title).toBe("Credentials");
+    expect(skillGroups[0].credentials?.map((credential) => credential.image)).toEqual([
+      "/images/IBM-PM-cert.png",
+      "/images/google-ai-professional.png",
+      "/images/NUS-product-club.png",
+    ]);
+    expect(skillGroups[0].skills).toEqual([]);
+    expect(skillGroups.find((group) => group.title === "Product judgment")).toEqual(
+      expect.objectContaining({
+        signal: "Product Management essential skills",
+        skills: [
+          "Agile / Scrum Methods",
+          "Product Market Research",
+          "User Acceptance Testing",
+          "UI / UX Design",
+          "Roadmapping",
+          "QoE Benchmarking",
+        ],
+      }),
+    );
+    expect(skillGroups.find((group) => group.title === "AI systems")?.skills).toEqual([
+      "Claude Code",
+      "OpenAI Codex",
+      "MCP",
+      "Agent Development",
+      "AI-Native Engineering",
+    ]);
+    expect(skillGroups.find((group) => group.title === "Product engineering")?.logos?.map((logo) => logo.image)).toEqual([
+      "/images/claude-code-logo.png",
+      "/images/openai-codex-logo.png",
+      "/images/typescript-logo.png",
+      "/images/django-logo.png",
+      "/images/flask-logo.png",
+      "/images/java-logo.png",
+      "/images/python-logo.png",
+      "/images/react-logo.png",
+    ]);
+    expect(skillGroups.find((group) => group.title === "Data fluency")?.logos?.map((logo) => logo.image)).toEqual([
+      "/images/sql-logo.jpg",
+      "/images/tableau-logo.png",
+      "/images/oracle-apex-logo.jpg",
+      "/images/plsql-logo.jpg",
+    ]);
+    const operations = skillGroups.find((group) => group.title === "Operations");
+    expect(operations?.skills).toEqual([
+      "Docker",
+      "n8n",
+      "Stripe",
+      "Railway",
+      "Supabase",
+    ]);
+    expect(operations?.skills).not.toContain("OAuth");
+    expect(operations?.skills).not.toContain("PDPA");
+    expect(operations?.logos?.map((logo) => logo.image)).toEqual([
+      "/images/docker-logo.png",
+      "/images/n8n-logo.png",
+      "/images/stripe-logo.svg",
+      "/images/railway-logo.svg",
+      "/images/supabase-logo.png",
+    ]);
+
+    for (const skill of marquee.skills) {
+      expect(categorizedSkills).toContain(skill);
+    }
   });
 });

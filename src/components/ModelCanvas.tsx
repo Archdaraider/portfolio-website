@@ -185,11 +185,6 @@ function computeCanUse3D() {
   }
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-  const lowMemory =
-    "deviceMemory" in navigator &&
-    typeof navigator.deviceMemory === "number" &&
-    navigator.deviceMemory <= 4;
 
-  return !reducedMotion && !coarsePointer && !lowMemory;
+  return !reducedMotion;
 }
