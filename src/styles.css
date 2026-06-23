@@ -1812,6 +1812,10 @@ button:focus-visible {
     font-size: 0.54rem;
   }
 
+  .nav-github {
+    display: none;
+  }
+
   .hero-copy h1 {
     white-space: normal;
     font-size: clamp(3rem, 18vw, 5rem);

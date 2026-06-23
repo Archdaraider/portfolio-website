@@ -386,7 +386,7 @@ function SiteNav({
         </a>
         <a
           href={contact.github}
-          className="magnetic"
+          className="magnetic nav-github"
           {...NEW_TAB_LINK_PROPS}
         >
           GitHub

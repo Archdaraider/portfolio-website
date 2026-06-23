@@ -190,6 +190,18 @@ describe("App", () => {
     );
   });
 
+  it("hides the top-nav GitHub link on narrow mobile screens", async () => {
+    // @ts-expect-error Node built-in types are not included in the app tsconfig.
+    const { readFileSync } = (await import("node:fs")) as {
+      readFileSync: (path: string, encoding: string) => string;
+    };
+    const stylesCss = readFileSync("src/styles.css", "utf8");
+
+    expect(stylesCss).toMatch(
+      /@media\s*\(max-width:\s*540px\)\s*{[\s\S]*\.nav-github\s*{[^}]*display:\s*none;/,
+    );
+  });
+
   it("shows January 2027 internship and full-time availability", () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
 
