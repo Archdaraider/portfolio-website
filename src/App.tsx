@@ -458,6 +458,7 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
             className="hero-portrait"
             src={profile.portraitImage}
             alt="Justin Goh"
+            fetchPriority="high"
           />
           <div className="orbital-note">Singapore / building in the open</div>
         </div>
@@ -597,7 +598,7 @@ function AboutSlideshow() {
         aria-label={`Advance about slideshow from ${slide.title}`}
         onClick={() => showSlide(1)}
       >
-        <img src={slide.image} alt={slide.alt} style={{ objectPosition: slide.objectPosition }} />
+        <img src={slide.image} alt={slide.alt} style={{ objectPosition: slide.objectPosition }} loading="lazy" />
       </button>
       <div className="about-slide-controls" aria-label="About image controls">
         <button

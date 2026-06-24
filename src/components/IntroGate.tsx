@@ -11,6 +11,8 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { Box3, LoopOnce, Vector3, type Group } from "three";
 
+useGLTF.preload("/models/intro-keycap-press.glb");
+
 const INTRO_KEYCAP_ROTATION_X = 0;
 const INTRO_KEYCAP_ROTATION_Y = Math.PI / 4;
 const INTRO_KEYCAP_ROTATION_Z = 0;
