@@ -9,6 +9,7 @@ import {
 } from "@react-three/drei";
 import { Box3, Vector3, type Group } from "three";
 import type { Project } from "../data/portfolio";
+import { KTX2Support, withKTX2 } from "../lib/ktx2";
 
 export default function ModelCanvas({
   project,
@@ -91,6 +92,7 @@ export default function ModelCanvas({
           dpr={[1, 1.5]}
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         >
+          <KTX2Support />
           <CameraLookAt />
           <ambientLight intensity={0.72} />
           <directionalLight position={[2, 6, 3]} intensity={1.05} />
@@ -133,7 +135,7 @@ function CameraLookAt() {
 
 function ProjectModel({ path, index }: { path: string; index: number }) {
   const group = useRef<Group>(null);
-  const gltf = useGLTF(path, true);
+  const gltf = useGLTF(path, true, true, withKTX2);
   const { scene, fitScale } = useMemo(() => {
     const clonedScene = gltf.scene.clone();
     clonedScene.updateMatrixWorld(true);

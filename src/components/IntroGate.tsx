@@ -10,8 +10,7 @@ import {
 } from "@react-three/drei";
 import { motion, useReducedMotion } from "motion/react";
 import { Box3, LoopOnce, Vector3, type Group } from "three";
-
-useGLTF.preload("/models/intro-keycap-press.glb");
+import { KTX2Support, withKTX2 } from "../lib/ktx2";
 
 const INTRO_KEYCAP_ROTATION_X = 0;
 const INTRO_KEYCAP_ROTATION_Y = Math.PI / 4;
@@ -91,6 +90,7 @@ export default function IntroGate({ isVisible, onEnter }: IntroGateProps) {
             dpr={[1, 1.5]}
             gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           >
+            <KTX2Support />
             <IntroCamera />
             <ambientLight intensity={0.68} />
             <directionalLight position={[2, 4, 4]} intensity={0.95} />
@@ -138,7 +138,7 @@ function IntroCamera() {
 
 function IntroKeycapModel({ phase }: { phase: IntroPhase }) {
   const group = useRef<Group>(null);
-  const gltf = useGLTF("/models/intro-keycap-press.glb", true);
+  const gltf = useGLTF("/models/intro-keycap-press.glb", true, true, withKTX2);
   const { actions, names } = useAnimations(gltf.animations, group);
   const { scene, fitScale } = useMemo(() => {
     const clonedScene = gltf.scene.clone();
