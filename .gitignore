@@ -4,3 +4,6 @@ dist
 *.local
 *.tsbuildinfo
 node_modules/.tmp
+
+# Local source assets (originals/working files, not served by the site)
+assets/
