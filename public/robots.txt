@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://justingohzk.com/sitemap.xml
