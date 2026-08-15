@@ -35,6 +35,7 @@ const NEW_TAB_LINK_PROPS = {
   rel: "noreferrer",
 };
 const NUS_BAIS_HREF = "https://www.comp.nus.edu.sg/programmes/ug/bais/";
+const ABOUT_AUTO_ADVANCE_MS = 10_000;
 
 function App() {
   const prefersReducedMotion = useReducedMotion();
@@ -577,18 +578,28 @@ function About() {
 
 function AboutSlideshow() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [autoAdvanceCycle, setAutoAdvanceCycle] = useState(0);
   const slide = aboutSlides[activeSlide];
 
-  const showSlide = (direction: 1 | -1) => {
+  const advanceSlide = (direction: 1 | -1) => {
     setActiveSlide((current) =>
       (current + direction + aboutSlides.length) % aboutSlides.length,
     );
   };
 
+  const showSlideManually = (direction: 1 | -1) => {
+    advanceSlide(direction);
+    setAutoAdvanceCycle((current) => current + 1);
+  };
+
   useEffect(() => {
-    const timer = window.setInterval(() => showSlide(1), 10_000);
-    return () => window.clearInterval(timer);
-  }, []);
+    const timer = window.setTimeout(() => {
+      setActiveSlide((current) => (current + 1) % aboutSlides.length);
+      setAutoAdvanceCycle((current) => current + 1);
+    }, ABOUT_AUTO_ADVANCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [autoAdvanceCycle]);
 
   return (
     <figure className="about-visual shell-card reveal reveal-right">
@@ -596,7 +607,7 @@ function AboutSlideshow() {
         type="button"
         className="about-image about-slide-hit"
         aria-label={`Advance about slideshow from ${slide.title}`}
-        onClick={() => showSlide(1)}
+        onClick={() => showSlideManually(1)}
       >
         <img src={slide.image} alt={slide.alt} style={{ objectPosition: slide.objectPosition }} loading="lazy" />
       </button>
@@ -605,7 +616,7 @@ function AboutSlideshow() {
           type="button"
           className="about-slide-control"
           aria-label="Previous about image"
-          onClick={() => showSlide(-1)}
+          onClick={() => showSlideManually(-1)}
         >
           <span aria-hidden="true">←</span>
         </button>
@@ -616,7 +627,7 @@ function AboutSlideshow() {
           type="button"
           className="about-slide-control"
           aria-label="Next about image"
-          onClick={() => showSlide(1)}
+          onClick={() => showSlideManually(1)}
         >
           <span aria-hidden="true">→</span>
         </button>
@@ -699,7 +710,7 @@ function Work({
           <div className="experience section-shell">
             <div className="reveal">
               <p className="eyebrow">Experience</p>
-              <h2 id="experience-title">A short record of useful constraints.</h2>
+              <h2 id="experience-title">Real Contributions in Real Companies</h2>
             </div>
             <div className="timeline">
               {experience.map((item, index) => (
@@ -708,7 +719,12 @@ function Work({
                   className="timeline-item reveal"
                   key={`${item.role}-${item.organisation}`}
                 >
-                  <span>{item.period}</span>
+                  <div className="timeline-meta">
+                    <span>{item.period}</span>
+                    <div className="timeline-logo-frame">
+                      <img src={item.logo} alt={item.logoAlt} loading="lazy" />
+                    </div>
+                  </div>
                   <div>
                     <h3>{item.role}</h3>
                     <p className="timeline-org">{item.organisation}</p>

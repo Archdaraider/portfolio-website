@@ -16,6 +16,11 @@ vi.mock("lenis", () => ({
   }),
 }));
 
+vi.mock("./lib/ktx2", () => ({
+  KTX2Support: () => null,
+  withKTX2: vi.fn(),
+}));
+
 vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-canvas">{children}</div>
@@ -100,6 +105,8 @@ describe("App", () => {
     expect(dreiMocks.useGLTF).toHaveBeenCalledWith(
       "/models/intro-keycap-press.glb",
       true,
+      true,
+      expect.any(Function),
     );
   });
 
@@ -639,6 +646,18 @@ describe("App", () => {
 
     expect(
       screen.getByRole("img", {
+        name: /QoE product management and research internship/i,
+      }),
+    ).toBeInTheDocument();
+    expect(document.querySelector(".about-slide-status strong")).toBeNull();
+    expect(document.querySelector(".about-caption")).toHaveTextContent(
+      "QoE Product Management and Research Internship @ IMDA",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Next about image/i }));
+
+    expect(
+      screen.getByRole("img", {
         name: /ShopBack Product Managers x NUS Entrepreneur Society/i,
       }),
     ).toBeInTheDocument();
@@ -648,21 +667,64 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Next about image/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Next about image/i }));
 
     expect(
-      screen.getByRole("img", { name: /NUS InterHall Hackathon/i }),
+      screen.getByRole("img", { name: /Carousell x OpenAI Hackathon/i }),
     ).toBeInTheDocument();
-    expect(document.querySelector(".about-slide-status strong")).toBeNull();
     expect(document.querySelector(".about-caption")).toHaveTextContent(
-      "NUS InterHall Hackathon",
+      "Carousell x OpenAI Hackathon",
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Previous about image/i }));
 
     expect(
-      screen.getByRole("img", {
-        name: /ShopBack Product Managers x NUS Entrepreneur Society/i,
+      screen.getByRole("img", { name: /Regional Codex Hackathon/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("restarts the about auto-advance countdown after an arrow click", () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    act(() => vi.advanceTimersByTime(9_900));
+    fireEvent.click(screen.getByRole("button", { name: /Next about image/i }));
+
+    expect(document.querySelector(".about-caption")).toHaveTextContent(
+      "ShopBack Product Managers x NUS Entrepreneur Society",
+    );
+
+    act(() => vi.advanceTimersByTime(200));
+    expect(document.querySelector(".about-caption")).toHaveTextContent(
+      "ShopBack Product Managers x NUS Entrepreneur Society",
+    );
+
+    act(() => vi.advanceTimersByTime(9_800));
+    expect(document.querySelector(".about-caption")).toHaveTextContent(
+      "Regional Codex Hackathon",
+    );
+  });
+
+  it("renders the Synapxe experience and company logo rail", async () => {
+    window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("tab", { name: /Experiences/i }));
+    await screen.findByRole("tabpanel", { name: /Experiences/i });
+
+    expect(
+      screen.getByRole("heading", { name: "Real Contributions in Real Companies" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "AI Product Management & AI Strategy Intern",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Incoming")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Synapxe logo" })).toHaveAttribute(
+      "src",
+      "/images/synapxe-logo.jpeg",
+    );
+    expect(document.querySelectorAll(".timeline-logo-frame img")).toHaveLength(4);
   });
 });

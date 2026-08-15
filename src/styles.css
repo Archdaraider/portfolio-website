@@ -1497,6 +1497,32 @@ button:focus-visible {
   gap: 2rem;
 }
 
+.timeline-meta {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 1rem;
+}
+
+.timeline-logo-frame {
+  display: grid;
+  width: 112px;
+  height: 84px;
+  place-items: center;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(136, 114, 109, 0.2);
+  border-radius: 10px;
+  background: rgba(252, 249, 248, 0.72);
+}
+
+.timeline-logo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .timeline-org {
   margin-top: 0;
   color: var(--terracotta-dark) !important;
@@ -1645,7 +1671,7 @@ button:focus-visible {
 
 @media (max-width: 900px) {
   .scroll-wheel {
-    right: 8px;
+    right: 12px;
     gap: 6px;
     opacity: 0.82;
   }
@@ -1779,6 +1805,18 @@ button:focus-visible {
   .timeline-item {
     grid-template-columns: 1fr;
     gap: 0.8rem;
+  }
+
+  .timeline-meta {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .timeline-logo-frame {
+    width: 72px;
+    height: 54px;
+    padding: 7px;
   }
 
   .button,

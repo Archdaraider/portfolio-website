@@ -21,6 +21,8 @@ export type ExperienceItem = {
   organisation: string;
   period: string;
   summary: string;
+  logo: string;
+  logoAlt: string;
 };
 
 export type Certification = {
@@ -276,15 +278,15 @@ export const certifications: Certification[] = [
 
 export const aboutSlides: AboutSlide[] = [
   {
+    title: "QoE Product Management and Research Internship @ IMDA",
+    image: "/images/IMDA-internship.jpg",
+    alt: "Justin with colleagues at the Infocomm Media Development Authority during his QoE product management and research internship",
+    objectPosition: "center 48%",
+  },
+  {
     title: "ShopBack Product Managers x NUS Entrepreneur Society",
     image: "/images/shopback-pmtalk.jpg",
     alt: "Justin with speakers and students at the ShopBack Product Managers x NUS Entrepreneur Society event",
-    objectPosition: "center center",
-  },
-  {
-    title: "NUS InterHall Hackathon",
-    image: "/images/nus-interhall-hackathon.jpg",
-    alt: "Justin and teammates reviewing a laptop during the NUS InterHall Hackathon",
     objectPosition: "center center",
   },
   {
@@ -292,6 +294,18 @@ export const aboutSlides: AboutSlide[] = [
     image: "/images/hackathon.png",
     alt: "Justin and team building at the Regional Codex Hackathon",
     objectPosition: "center 36%",
+  },
+  {
+    title: "Carousell x OpenAI Hackathon",
+    image: "/images/carousellxopenai-hackathon.jpg",
+    alt: "Justin and teammates at the Carousell Campus for the Carousell x OpenAI Hackathon",
+    objectPosition: "center center",
+  },
+  {
+    title: "NUS InterHall Hackathon",
+    image: "/images/nus-interhall-hackathon.jpg",
+    alt: "Justin and teammates reviewing a laptop during the NUS InterHall Hackathon",
+    objectPosition: "center center",
   },
 ];
 
@@ -368,25 +382,39 @@ export const projects: Project[] = [
 
 export const experience: ExperienceItem[] = [
   {
+    role: "AI Product Management & AI Strategy Intern",
+    organisation: "Synapxe",
+    period: "Jan 2027",
+    summary: "Incoming",
+    logo: "/images/synapxe-logo.jpeg",
+    logoAlt: "Synapxe logo",
+  },
+  {
     role: "Product Management & QoE Research Intern",
-    organisation: "IMDA Singapore — Punggol Digital District",
-    period: "Jan 2026 – Jun 2026",
+    organisation: "IMDA Singapore - Punggol Digital District",
+    period: "Jan 2026 - Jun 2026",
     summary:
-      "Owned the quality-of-experience benchmarking workstream for the district's autonomous-robotics rollout — turning an ambiguous regulatory question into a structured testing framework, running UAT across Umlaut, Accenture, IMDA and GovTech, and producing go/no-go recommendations from experiments on real hardware.",
+      "Owned the quality-of-experience benchmarking workstream for the district's autonomous-robotics rollout, turning an ambiguous regulatory question into a structured testing framework, running UAT across Umlaut, Accenture, IMDA and GovTech, and producing go/no-go recommendations from experiments on real hardware.",
+    logo: "/images/imda-logo.png",
+    logoAlt: "Infocomm Media Development Authority logo",
   },
   {
     role: "Software Engineer Intern",
     organisation: "CWT Globelink (Connecting World Trade)",
-    period: "Feb 2024 – Apr 2024",
+    period: "Feb 2024 - Apr 2024",
     summary:
       "Found the highest-leverage bottleneck in the reporting pipeline through stakeholder interviews and shipped a Gen-AI-assisted query layer (Oracle APEX, PL/SQL) that cut report-generation time by ~20%, then authored a build-vs-buy analysis on internal tooling alternatives.",
+    logo: "/images/CWT-logo.png",
+    logoAlt: "CWT Globelink logo",
   },
   {
-    role: "Undergraduate Teaching Assistant — BT2102",
+    role: "Undergraduate Teaching Assistant - BT2102",
     organisation: "National University of Singapore",
-    period: "Aug 2025 – May 2026",
+    period: "Aug 2025 - May 2026",
     summary:
-      "Selected across multiple semesters to lead weekly labs for 30+ first-year students on SQL, relational modelling, and Tableau — practising the craft of explaining technical reasoning to non-technical audiences.",
+      "Selected across multiple semesters to lead weekly labs for 30+ first-year students on SQL, relational modelling, and Tableau, practising the craft of explaining technical reasoning to non-technical audiences.",
+    logo: "/images/nus-logo.png",
+    logoAlt: "National University of Singapore logo",
   },
 ];
 

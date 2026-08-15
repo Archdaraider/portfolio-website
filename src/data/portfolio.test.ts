@@ -1,4 +1,12 @@
-import { aboutSlides, contact, marquee, projects, skillGroups, swapPoints } from "./portfolio";
+import {
+  aboutSlides,
+  contact,
+  experience,
+  marquee,
+  projects,
+  skillGroups,
+  swapPoints,
+} from "./portfolio";
 
 describe("portfolio data", () => {
   it("centralises all project assets and links", () => {
@@ -61,17 +69,38 @@ describe("portfolio data", () => {
   });
 
   it("defines the about slideshow images and event captions", () => {
-    expect(aboutSlides).toHaveLength(3);
+    expect(aboutSlides).toHaveLength(5);
     expect(aboutSlides.map((slide) => slide.image)).toEqual([
+      "/images/IMDA-internship.jpg",
       "/images/shopback-pmtalk.jpg",
-      "/images/nus-interhall-hackathon.jpg",
       "/images/hackathon.png",
+      "/images/carousellxopenai-hackathon.jpg",
+      "/images/nus-interhall-hackathon.jpg",
     ]);
     expect(aboutSlides.map((slide) => slide.title)).toEqual([
+      "QoE Product Management and Research Internship @ IMDA",
       "ShopBack Product Managers x NUS Entrepreneur Society",
-      "NUS InterHall Hackathon",
       "Regional Codex Hackathon",
+      "Carousell x OpenAI Hackathon",
+      "NUS InterHall Hackathon",
     ]);
+  });
+
+  it("lists Synapxe first and provides a logo for every experience", () => {
+    expect(experience[0]).toEqual(
+      expect.objectContaining({
+        role: "AI Product Management & AI Strategy Intern",
+        organisation: "Synapxe",
+        period: "Jan 2027",
+        summary: "Incoming",
+        logo: "/images/synapxe-logo.jpeg",
+      }),
+    );
+
+    for (const item of experience) {
+      expect(item.logo).toMatch(/^\/images\/.+\.(?:jpe?g|png)$/i);
+      expect(item.logoAlt).toMatch(/logo$/i);
+    }
   });
 
   it("categorizes every listed skill in the skill map", () => {
