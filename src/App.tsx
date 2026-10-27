@@ -1,6 +1,16 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Lenis from "lenis";
 import {
+  MotionConfig,
+  animate,
   motion,
   useMotionValueEvent,
   useReducedMotion,
@@ -11,18 +21,20 @@ import {
 import {
   aboutSlides,
   contact,
+  credentials,
   experience,
-  marquee,
   profile,
   projects,
   skillGroups,
+  stats,
+  type ExperienceItem,
   type Project,
+  type Stat,
 } from "./data/portfolio";
 
 const ModelCanvas = lazy(() => import("./components/ModelCanvas"));
 const IntroGate = lazy(() => import("./components/IntroGate"));
 
-type WorkView = "projects" | "experience";
 const INTRO_SESSION_KEY = "justin-portfolio-intro-seen";
 
 const EMAIL_HREF = `mailto:${contact.email}?subject=${encodeURIComponent(
@@ -34,15 +46,33 @@ const NEW_TAB_LINK_PROPS = {
   target: "_blank",
   rel: "noreferrer",
 };
-const NUS_BAIS_HREF = "https://www.comp.nus.edu.sg/programmes/ug/bais/";
 const ABOUT_AUTO_ADVANCE_MS = 10_000;
+const NAV_OFFSET = -96;
+
+const SECTIONS = [
+  { id: "top", label: "Intro" },
+  { id: "experience", label: "Experience" },
+  { id: "projects", label: "Projects" },
+  { id: "about", label: "About" },
+  { id: "skills", label: "Toolkit" },
+  { id: "contact", label: "Contact" },
+] as const;
+type SectionId = (typeof SECTIONS)[number]["id"];
+
+const NAV_SECTIONS: SectionId[] = ["experience", "projects", "about", "contact"];
+const nextRole = experience.find((item) => item.status);
+
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function sectionLabel(id: SectionId) {
+  return SECTIONS.find((section) => section.id === id)?.label ?? "";
+}
 
 function App() {
   const prefersReducedMotion = useReducedMotion();
   const lenisRef = useRef<Lenis | null>(null);
-  const [workView, setWorkView] = useState<WorkView>("projects");
-  const [pendingWorkScrollTarget, setPendingWorkScrollTarget] =
-    useState<WorkView | null>(null);
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -55,58 +85,9 @@ function App() {
     }
     return window.sessionStorage.getItem(INTRO_SESSION_KEY) === "true";
   });
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 20,
-    mass: 0.25,
-  });
+  const activeSection = useActiveSection();
 
-  useScrollReveal(prefersReducedMotion, workView);
-
-  useEffect(() => {
-    if (pendingWorkScrollTarget !== workView) {
-      return;
-    }
-
-    let frame = 0;
-    let timer = 0;
-    let didScroll = false;
-    const targetId = getWorkViewTargetId(pendingWorkScrollTarget);
-    const scrollToSelectedWork = () => {
-      if (didScroll) {
-        return;
-      }
-      const target = document.getElementById(targetId);
-      if (!target) {
-        return;
-      }
-      didScroll = true;
-      if (lenisRef.current && !prefersReducedMotion) {
-        lenisRef.current.scrollTo(target, { offset: -96, duration: 1.05 });
-      } else {
-        target.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: "start",
-        });
-      }
-      window.setTimeout(() => setPendingWorkScrollTarget(null), 0);
-    };
-
-    if (typeof window.requestAnimationFrame === "function") {
-      frame = window.requestAnimationFrame(() => {
-        frame = window.requestAnimationFrame(scrollToSelectedWork);
-      });
-      timer = window.setTimeout(scrollToSelectedWork, 180);
-      return () => {
-        window.cancelAnimationFrame(frame);
-        window.clearTimeout(timer);
-      };
-    }
-
-    timer = window.setTimeout(scrollToSelectedWork, 0);
-    return () => window.clearTimeout(timer);
-  }, [pendingWorkScrollTarget, prefersReducedMotion, workView]);
+  useScrollReveal(prefersReducedMotion);
 
   useEffect(() => {
     if (prefersReducedMotion || typeof ResizeObserver === "undefined") {
@@ -134,67 +115,157 @@ function App() {
     };
   }, [prefersReducedMotion]);
 
+  // Hold the page still behind the intro so a scroll gesture only presses the key.
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (!lenis) {
+      return;
+    }
+    if (showIntro) {
+      lenis.stop();
+    } else {
+      lenis.start();
+    }
+  }, [showIntro, prefersReducedMotion]);
+
+  const scrollToTarget = (target: string | number) => {
+    const lenis = prefersReducedMotion ? null : lenisRef.current;
+    if (typeof target === "number") {
+      if (lenis) {
+        lenis.scrollTo(target, { duration: 1.05 });
+      } else {
+        window.scrollTo?.({ top: target, behavior: prefersReducedMotion ? "auto" : "smooth" });
+      }
+      return;
+    }
+
+    const element = document.getElementById(target);
+    if (!element) {
+      return;
+    }
+    if (lenis) {
+      lenis.scrollTo(element, { offset: target === "top" ? 0 : NAV_OFFSET, duration: 1.05 });
+    } else {
+      element.scrollIntoView?.({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+  };
+
+  // Route every in-page "#section" link through the smooth scroller.
+  const onAnchorClick = useEffectEvent((event: MouseEvent) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    const link = (event.target as Element | null)?.closest?.('a[href^="#"]');
+    const id = link?.getAttribute("href")?.slice(1);
+    if (!id || !document.getElementById(id)) {
+      return;
+    }
+    event.preventDefault();
+    scrollToTarget(id);
+  });
+
+  useEffect(() => {
+    const listener = (event: MouseEvent) => onAnchorClick(event);
+    document.addEventListener("click", listener);
+    return () => document.removeEventListener("click", listener);
+  }, []);
+
+  const jumpToTop = () => {
+    if (navigator.userAgent.toLowerCase().includes("jsdom")) {
+      return;
+    }
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { immediate: true, force: true });
+    } else {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  };
+
   const enterSite = () => {
     window.sessionStorage.setItem(INTRO_SESSION_KEY, "true");
+    jumpToTop();
     setIntroComplete(true);
     setShowIntro(false);
-    scrollToTop(prefersReducedMotion);
   };
 
   const reopenIntro = () => {
-    scrollToTop(prefersReducedMotion);
+    jumpToTop();
     setIntroComplete(false);
     setShowIntro(true);
   };
 
-  const selectWork = (view: WorkView) => {
-    setWorkView(view);
-    setPendingWorkScrollTarget(view);
-  };
-
   return (
-    <main>
-      <Suspense fallback={null}>
-        <IntroGate
-          key={showIntro ? "intro-open" : "intro-closed"}
-          isVisible={showIntro}
-          onEnter={enterSite}
-        />
-      </Suspense>
-      <div
-        className={`portfolio-shell ${
-          introComplete ? "is-intro-complete" : "is-intro-active"
-        }`}
-      >
-        <ScrollWheel progress={progress} />
-        <SiteNav onSelectWork={selectWork} onOpenIntro={reopenIntro} />
-        <Hero onSelectWork={selectWork} />
-        <SkillAtlas />
-        <About />
-        <Work view={workView} onSelect={selectWork} />
-        <Contact />
-        <DockBar />
-      </div>
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main>
+        <Suspense fallback={null}>
+          <IntroGate
+            key={showIntro ? "intro-open" : "intro-closed"}
+            isVisible={showIntro}
+            onEnter={enterSite}
+          />
+        </Suspense>
+        {/* Fixed chrome lives outside the animated shell: a transformed ancestor
+            would otherwise turn position: fixed into position: absolute. */}
+        <div className={`site-chrome ${introComplete ? "" : "is-hidden"}`}>
+          <SiteNav activeSection={activeSection} onOpenIntro={reopenIntro} />
+          <ScrollWheel activeSection={activeSection} onNavigate={scrollToTarget} />
+          <DockBar isHidden={activeSection === "contact"} />
+        </div>
+        <div
+          className={`portfolio-shell ${
+            introComplete ? "is-intro-complete" : "is-intro-active"
+          }`}
+        >
+          <Hero />
+          <ProofStrip />
+          <Experience />
+          <Projects />
+          <About />
+          <Toolkit />
+          <Contact />
+        </div>
+      </main>
+    </MotionConfig>
   );
 }
 
-function scrollToTop(prefersReducedMotion: boolean | null) {
-  if (
-    typeof window.scrollTo !== "function" ||
-    navigator.userAgent.toLowerCase().includes("jsdom")
-  ) {
-    return;
-  }
+function useActiveSection(): SectionId {
+  const [activeSection, setActiveSection] = useState<SectionId>("top");
+  const { scrollY } = useScroll();
 
-  window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
+  const measure = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const probe = window.innerHeight * 0.4;
+    const atBottom =
+      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4 &&
+      window.scrollY > 0;
+    let current: SectionId = "top";
+    for (const { id } of SECTIONS) {
+      const element = document.getElementById(id);
+      if (element && element.getBoundingClientRect().top <= probe) {
+        current = id;
+      }
+    }
+    setActiveSection(atBottom ? "contact" : current);
+  };
+
+  useMotionValueEvent(scrollY, "change", measure);
+  return activeSection;
 }
 
-function getWorkViewTargetId(view: WorkView) {
-  return view === "projects" ? projects[0]?.id ?? "work" : "experience-0";
-}
-
-function useScrollReveal(prefersReducedMotion: boolean | null, workView: WorkView) {
+function useScrollReveal(prefersReducedMotion: boolean | null) {
   useEffect(() => {
     const revealElements = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
     if (revealElements.length === 0) {
@@ -225,70 +296,90 @@ function useScrollReveal(prefersReducedMotion: boolean | null, workView: WorkVie
 
     revealElements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [prefersReducedMotion, workView]);
+  }, [prefersReducedMotion]);
 }
 
-function ScrollWheel({ progress }: { progress: ReturnType<typeof useSpring> }) {
+function useInViewOnce(ref: React.RefObject<Element | null>) {
+  const [isInView, setIsInView] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -10% 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return isInView;
+}
+
+function ScrollWheel({
+  activeSection,
+  onNavigate,
+}: {
+  activeSection: SectionId;
+  onNavigate: (target: string | number) => void;
+}) {
   const railRef = useRef<HTMLDivElement | null>(null);
-  const [percent, setPercent] = useState(0);
-  const [marks, setMarks] = useState<{ id: string; label: string; frac: number }[]>(
+  const [marks, setMarks] = useState<{ id: SectionId; label: string; frac: number }[]>(
     [],
   );
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 20,
+    mass: 0.25,
+  });
   const knobY = useTransform(progress, [0, 1], ["0%", "100%"]);
   const fillScaleY = useTransform(progress, (v) => Math.max(0, Math.min(1, v)));
 
-  useMotionValueEvent(progress, "change", (value) => {
-    setPercent(Math.round(Math.max(0, Math.min(1, value)) * 100));
-  });
-
   useEffect(() => {
-    const sections = [
-      { id: "top", label: "Intro" },
-      { id: "about", label: "About" },
-      { id: "work", label: "Work" },
-      { id: "contact", label: "Contact" },
-    ];
-
     const measure = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      const next = sections
-        .map(({ id, label }) => {
-          const el = document.getElementById(id);
-          if (!el) return null;
-          const frac = max > 0 ? Math.min(1, el.offsetTop / max) : 0;
-          return { id, label, frac };
-        })
-        .filter((m): m is { id: string; label: string; frac: number } => m !== null);
-      setMarks(next);
+      setMarks(
+        SECTIONS.flatMap(({ id, label }) => {
+          const element = document.getElementById(id);
+          if (!element) return [];
+          const top = element.getBoundingClientRect().top + window.scrollY;
+          return [{ id, label, frac: max > 0 ? Math.min(1, Math.max(0, top / max)) : 0 }];
+        }),
+      );
     };
 
     measure();
+    // Sections grow as models and images load, so keep the marks in sync.
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(document.body);
     window.addEventListener("resize", measure);
-    const timer = window.setTimeout(measure, 800);
     return () => {
+      observer?.disconnect();
       window.removeEventListener("resize", measure);
-      window.clearTimeout(timer);
     };
   }, []);
-
-  const scrollToFraction = (frac: number) => {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo({ top: frac * max, behavior: "smooth" });
-  };
 
   const handleRailClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rail = railRef.current;
     if (!rail) return;
     const rect = rail.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-    scrollToFraction(frac);
+    onNavigate(frac * (document.documentElement.scrollHeight - window.innerHeight));
   };
 
   return (
-    <aside className="scroll-wheel" aria-label="Scroll progress and section navigation">
-      <span className="scroll-wheel-arrow" aria-hidden="true">
-        ↑
-      </span>
+    <aside className="scroll-wheel" aria-label="Section navigation">
       <div className="scroll-wheel-rail" ref={railRef} onClick={handleRailClick}>
         <span className="scroll-wheel-dots" aria-hidden="true" />
         <motion.span
@@ -300,14 +391,12 @@ function ScrollWheel({ progress }: { progress: ReturnType<typeof useSpring> }) {
           <button
             key={mark.id}
             type="button"
-            className="scroll-wheel-mark"
+            className={`scroll-wheel-mark ${mark.id === activeSection ? "is-active" : ""}`}
             style={{ top: `${mark.frac * 100}%` }}
             aria-label={`Go to ${mark.label}`}
             onClick={(event) => {
               event.stopPropagation();
-              document
-                .getElementById(mark.id)
-                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              onNavigate(mark.id);
             }}
           >
             <span className="scroll-wheel-mark-label">{mark.label}</span>
@@ -318,24 +407,18 @@ function ScrollWheel({ progress }: { progress: ReturnType<typeof useSpring> }) {
           style={{ top: knobY }}
           aria-hidden="true"
         >
-          <span className="scroll-wheel-knob-count">{percent}</span>
+          <span className="scroll-wheel-knob-label">{sectionLabel(activeSection)}</span>
         </motion.span>
       </div>
-      <span className="scroll-wheel-arrow" aria-hidden="true">
-        ↓
-      </span>
-      <span className="scroll-wheel-label" aria-hidden="true">
-        scroll
-      </span>
     </aside>
   );
 }
 
 function SiteNav({
-  onSelectWork,
+  activeSection,
   onOpenIntro,
 }: {
-  onSelectWork: (view: WorkView) => void;
+  activeSection: SectionId;
   onOpenIntro: () => void;
 }) {
   return (
@@ -343,6 +426,8 @@ function SiteNav({
       <a
         href="#top"
         className="nav-mark magnetic"
+        aria-label="Replay intro"
+        title="Replay intro"
         onClick={(event) => {
           event.preventDefault();
           onOpenIntro();
@@ -351,45 +436,31 @@ function SiteNav({
         J
       </a>
       <div className="nav-links">
-        <a href="#about" className="magnetic">
-          About
-        </a>
-        <a
-          href="#work"
-          className="magnetic"
-          onClick={(event) => {
-            event.preventDefault();
-            onSelectWork("projects");
-          }}
-        >
-          Projects
-        </a>
-        <a
-          href="#work"
-          className="magnetic"
-          onClick={(event) => {
-            event.preventDefault();
-            onSelectWork("experience");
-          }}
-        >
-          Experience
-        </a>
-        <a href="#contact" className="magnetic">
-          Contact
-        </a>
+        {NAV_SECTIONS.map((id) => {
+          const isActive = activeSection === id;
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              className={`magnetic ${isActive ? "is-active" : ""}`}
+              aria-current={isActive ? "location" : undefined}
+            >
+              {isActive ? (
+                <motion.span
+                  layoutId="nav-pill"
+                  className="nav-pill"
+                  transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                />
+              ) : null}
+              {sectionLabel(id)}
+            </a>
+          );
+        })}
         <span className="nav-divider" aria-hidden="true" />
-        <a
-          href={contact.linkedIn}
-          className="magnetic"
-          {...NEW_TAB_LINK_PROPS}
-        >
+        <a href={contact.linkedIn} className="magnetic" {...NEW_TAB_LINK_PROPS}>
           LinkedIn
         </a>
-        <a
-          href={contact.github}
-          className="magnetic nav-github"
-          {...NEW_TAB_LINK_PROPS}
-        >
+        <a href={contact.github} className="magnetic nav-github" {...NEW_TAB_LINK_PROPS}>
           GitHub
         </a>
       </div>
@@ -397,56 +468,58 @@ function SiteNav({
   );
 }
 
-function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
+function Hero() {
+  const prefersReducedMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const portraitY = useTransform(scrollY, [0, 900], ["-8%", "-1%"]);
+
   return (
     <section id="top" className="hero section-shell" aria-labelledby="hero-title">
       <div className="hero-meta reveal reveal-left">
         <p className="hero-meta-primary">
-          <a
-            href={NUS_BAIS_HREF}
-            className="bais-pulse-token magnetic"
-            {...NEW_TAB_LINK_PROPS}
-          >
-            click me
+          <a href={profile.degreeHref} className="hero-degree-link" {...NEW_TAB_LINK_PROPS}>
+            {profile.degree}
+            <span aria-hidden="true"> ↗</span>
           </a>
-          {profile.eyebrow}
         </p>
+        <p className="hero-meta-primary">{profile.year}</p>
         <p className="hero-meta-primary">{profile.graduation}</p>
         <div className="meta-rule" />
-        <ul className="hero-role-list" aria-label="Current roles">
-          {profile.heroMetrics.map((item) => (
+        <p className="hero-meta-label">Previously</p>
+        <ul className="hero-role-list" aria-label="Previous roles">
+          {profile.previousRoles.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
       </div>
       <div className="hero-copy reveal">
-        <p className="eyebrow">Portfolio</p>
-        <h1 id="hero-title">{profile.name}</h1>
+        {nextRole ? (
+          <a href="#experience" className="status-pill">
+            <span className="status-dot" aria-hidden="true" />
+            <span>{nextRole.status}</span>{" "}
+            <span className="status-pill-text">
+              {nextRole.role} @ {nextRole.organisation}
+            </span>
+          </a>
+        ) : null}
+        <h1 id="hero-title" className="hero-title" aria-label={profile.name}>
+          {profile.name.split(" ").map((word, index) => (
+            <span className="hero-title-word" key={word} aria-hidden="true">
+              <span style={{ "--i": index } as CSSProperties}>{word}</span>
+            </span>
+          ))}
+        </h1>
         <p className="hero-positioning">{profile.positioning}</p>
         <p className="hero-summary">{profile.summary}</p>
         <div className="hero-actions">
-          <a
-            href="#work"
-            className="button primary magnetic"
-            onClick={(event) => {
-              event.preventDefault();
-              onSelectWork("projects");
-            }}
-          >
+          <a href="#projects" className="button primary magnetic">
             <span>View projects</span>
             <span aria-hidden="true" className="button-mark">
               ↗
             </span>
           </a>
-          <a
-            href="#work"
-            className="button secondary magnetic"
-            onClick={(event) => {
-              event.preventDefault();
-              onSelectWork("experience");
-            }}
-          >
-            <span>View experiences</span>
+          <a href="#experience" className="button secondary magnetic">
+            <span>View experience</span>
             <span aria-hidden="true" className="button-mark">
               ↗
             </span>
@@ -455,11 +528,14 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
       </div>
       <div className="hero-visual shell-card reveal reveal-right">
         <div className="hero-visual-inner">
-          <img
+          <motion.img
             className="hero-portrait"
             src={profile.portraitImage}
             alt="Justin Goh"
+            width={778}
+            height={1100}
             fetchPriority="high"
+            style={prefersReducedMotion ? undefined : { y: portraitY }}
           />
           <div className="orbital-note">Singapore / building in the open</div>
         </div>
@@ -468,308 +544,128 @@ function Hero({ onSelectWork }: { onSelectWork: (view: WorkView) => void }) {
   );
 }
 
-export function Marquee({ large = false }: { large?: boolean }) {
-  const items = [...marquee.skills, ...marquee.certifications];
-  const loop = [...items, ...items];
-
+function ProofStrip() {
   return (
-    <section
-      className={`marquee reveal ${large ? "is-large" : ""}`}
-      aria-label="Skills and certifications"
-    >
-      <div className="marquee-track">
-        {loop.map((item, index) => {
-          const isCert = marquee.certifications.includes(item);
-          return (
-            <span
-              key={`${item}-${index}`}
-              className={`marquee-item ${isCert ? "is-cert" : ""}`}
-            >
-              {isCert ? <span className="marquee-star">✦</span> : null}
-              {item}
-              <span className="marquee-sep" aria-hidden="true">
-                /
-              </span>
-            </span>
-          );
-        })}
-      </div>
+    <section className="proof-strip section-shell" aria-label="Impact highlights">
+      <ul className="proof-grid reveal">
+        {stats.map((stat) => (
+          <StatTile key={stat.label} stat={stat} />
+        ))}
+      </ul>
     </section>
   );
 }
 
-function SkillAtlas() {
-  return (
-    <section
-      id="skills"
-      className="skill-atlas section-shell"
-      aria-label="Skill map"
-    >
-      <div className="section-index reveal reveal-left">Skills</div>
-      <div className="skill-atlas-intro reveal">
-        <p className="eyebrow">Capability map</p>
-        <h2>What I bring into a room.</h2>
-        <p>
-          A recruiter-friendly view of the same stack: product judgment first,
-          then the technical surface area that lets the work ship.
-        </p>
-      </div>
-      <div className="skill-atlas-board reveal reveal-right">
-        {skillGroups.map((group, index) => {
-          const logos = group.credentials ?? group.logos ?? [];
-          const logoTitles = new Set(logos.map((logo) => logo.title));
-          const visibleSkills = group.credentials
-            ? []
-            : group.skills.filter((skill) => !logoTitles.has(skill));
-
-          return (
-            <article className="skill-lane" key={group.title}>
-              <div className="skill-lane-head">
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <h3>{group.title}</h3>
-                <p>{group.signal}</p>
-              </div>
-              {logos.length > 0 ? (
-                <div className="credential-logo-grid" aria-label={`${group.title} logos`}>
-                  {logos.map((logo) => (
-                    <figure className="credential-logo-card" key={logo.title}>
-                      <img src={logo.image} alt={logo.alt} />
-                      <figcaption>{logo.title}</figcaption>
-                    </figure>
-                  ))}
-                </div>
-              ) : null}
-              {visibleSkills.length > 0 ? (
-                <ul className="skill-chip-list" aria-label={`${group.title} skills`}>
-                  {visibleSkills.map((skill) => (
-                    <li key={skill}>{skill}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function About() {
-  return (
-    <section id="about" className="about section-shell" aria-label="About">
-      <div className="section-index reveal reveal-left">01 / About</div>
-      <div className="about-copy reveal">
-        <p className="eyebrow">Operating notes</p>
-        <h2 id="about-title">The best product people are builders.</h2>
-        <p>
-          I like messy problems: tinker, find the real constraint, then ship the
-          prototype.
-        </p>
-        <p>
-          The best work starts with people: interviews, workflows, and small
-          details that become systems that hold up. At NUS, that through-line is
-          simple: understand, build, repeat.
-        </p>
-      </div>
-      <AboutSlideshow />
-    </section>
-  );
-}
-
-function AboutSlideshow() {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [autoAdvanceCycle, setAutoAdvanceCycle] = useState(0);
-  const slide = aboutSlides[activeSlide];
-
-  const advanceSlide = (direction: 1 | -1) => {
-    setActiveSlide((current) =>
-      (current + direction + aboutSlides.length) % aboutSlides.length,
-    );
-  };
-
-  const showSlideManually = (direction: 1 | -1) => {
-    advanceSlide(direction);
-    setAutoAdvanceCycle((current) => current + 1);
-  };
+function StatTile({ stat }: { stat: Stat }) {
+  const ref = useRef<HTMLLIElement | null>(null);
+  const isInView = useInViewOnce(ref);
+  const prefersReducedMotion = useReducedMotion();
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setActiveSlide((current) => (current + 1) % aboutSlides.length);
-      setAutoAdvanceCycle((current) => current + 1);
-    }, ABOUT_AUTO_ADVANCE_MS);
+    if (!isInView || prefersReducedMotion) {
+      return;
+    }
+    const controls = animate(0, stat.value, {
+      duration: 1.4,
+      ease: [0.23, 1, 0.32, 1],
+      onUpdate: (value) => setCount(Math.round(value)),
+    });
+    return () => controls.stop();
+  }, [isInView, prefersReducedMotion, stat.value]);
 
-    return () => window.clearTimeout(timer);
-  }, [autoAdvanceCycle]);
+  const shown = prefersReducedMotion ? stat.value : count;
+  const fullValue = `${stat.prefix ?? ""}${stat.value}${stat.suffix ?? ""}`;
 
   return (
-    <figure className="about-visual shell-card reveal reveal-right">
-      <button
-        type="button"
-        className="about-image about-slide-hit"
-        aria-label={`Advance about slideshow from ${slide.title}`}
-        onClick={() => showSlideManually(1)}
-      >
-        <img src={slide.image} alt={slide.alt} style={{ objectPosition: slide.objectPosition }} loading="lazy" />
-      </button>
-      <div className="about-slide-controls" aria-label="About image controls">
-        <button
-          type="button"
-          className="about-slide-control"
-          aria-label="Previous about image"
-          onClick={() => showSlideManually(-1)}
-        >
-          <span aria-hidden="true">←</span>
-        </button>
-        <div className="about-slide-status" aria-live="polite">
-          <span>{String(activeSlide + 1).padStart(2, "0")}</span>
-        </div>
-        <button
-          type="button"
-          className="about-slide-control"
-          aria-label="Next about image"
-          onClick={() => showSlideManually(1)}
-        >
-          <span aria-hidden="true">→</span>
-        </button>
-      </div>
-      <figcaption className="about-caption">{slide.title}</figcaption>
-    </figure>
+    <li ref={ref} className="proof-item">
+      <strong className="proof-value" aria-hidden="true">
+        {stat.prefix}
+        {shown}
+        {stat.suffix}
+      </strong>
+      <span className="sr-only">{fullValue}</span>
+      <span className="proof-label">{stat.label}</span>
+      <span className="proof-source">{stat.source}</span>
+    </li>
   );
 }
 
-function Work({
-  view,
-  onSelect,
-}: {
-  view: WorkView;
-  onSelect: (view: WorkView) => void;
-}) {
-  return (
-    <section id="work" className="work" aria-label="Work">
-      <div className="work-head section-shell">
-        <div className="section-index reveal reveal-left">02 / Work</div>
-        <div className="work-intro reveal">
-          <p className="eyebrow">Choose a path</p>
-          <h2 id="work-title">Two ways in.</h2>
-          <p>
-            Pick a branch: the things I&apos;ve built, or the rooms I&apos;ve built
-            them in. You can switch anytime.
-          </p>
-        </div>
-        <div
-          className="work-split reveal"
-          role="tablist"
-          aria-label="Work view selector"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "projects"}
-            className={`work-path ${view === "projects" ? "is-active" : ""}`}
-            onClick={() => onSelect("projects")}
-          >
-            <span className="work-path-node">A</span>
-            <h3>Projects</h3>
-            <p>Real builds, each with its own object lesson.</p>
-            <span className="work-path-meta">
-              {String(projects.length).padStart(2, "0")} builds ↘
-            </span>
-          </button>
-          <span className="work-split-fork" aria-hidden="true" />
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "experience"}
-            className={`work-path ${view === "experience" ? "is-active" : ""}`}
-            onClick={() => onSelect("experience")}
-          >
-            <span className="work-path-node">B</span>
-            <h3>Experiences</h3>
-            <p>The roles where the useful constraints showed up.</p>
-            <span className="work-path-meta">
-              {String(experience.length).padStart(2, "0")} roles ↘
-            </span>
-          </button>
-        </div>
-      </div>
+function Experience() {
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: timelineRef,
+    offset: ["start 80%", "end 55%"],
+  });
+  const lineScale = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.3 });
 
-      {view === "projects" ? (
-        <div className="work-view" role="tabpanel" aria-label="Projects">
-          {projects.map((project, index) => (
-            <ProjectPanel key={project.id} project={project} index={index} />
+  return (
+    <section id="experience" className="experience section-shell" aria-label="Experience">
+      <div className="section-index reveal reveal-left">01 / Experience</div>
+      <div className="section-head reveal">
+        <p className="eyebrow">Where the useful constraints showed up</p>
+        <h2 id="experience-title" className="section-title">
+          Real Contributions in Real Companies
+        </h2>
+      </div>
+      <div className="timeline" ref={timelineRef}>
+        <motion.span
+          className="timeline-progress"
+          style={{ scaleY: lineScale }}
+          aria-hidden="true"
+        />
+        <ol className="timeline-list">
+          {experience.map((item) => (
+            <TimelineItem key={`${item.role}-${item.organisation}`} item={item} />
           ))}
-          <WorkCrosslink
-            eyebrow="Don’t stop here"
-            heading="Now see the rooms these were built in."
-            action="View experiences"
-            onClick={() => onSelect("experience")}
-          />
-        </div>
-      ) : (
-        <div className="work-view" role="tabpanel" aria-label="Experiences">
-          <div className="experience section-shell">
-            <div className="reveal">
-              <p className="eyebrow">Experience</p>
-              <h2 id="experience-title">Real Contributions in Real Companies</h2>
-            </div>
-            <div className="timeline">
-              {experience.map((item, index) => (
-                <article
-                  id={index === 0 ? "experience-0" : undefined}
-                  className="timeline-item reveal"
-                  key={`${item.role}-${item.organisation}`}
-                >
-                  <div className="timeline-meta">
-                    <span>{item.period}</span>
-                    <div className="timeline-logo-frame">
-                      <img src={item.logo} alt={item.logoAlt} loading="lazy" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3>{item.role}</h3>
-                    <p className="timeline-org">{item.organisation}</p>
-                    <p>{item.summary}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-          <WorkCrosslink
-            eyebrow="Don’t stop here"
-            heading="Circle back to the things I’ve built."
-            action="View projects"
-            onClick={() => onSelect("projects")}
-          />
-        </div>
-      )}
+        </ol>
+      </div>
     </section>
   );
 }
 
-function WorkCrosslink({
-  eyebrow,
-  heading,
-  action,
-  onClick,
-}: {
-  eyebrow: string;
-  heading: string;
-  action: string;
-  onClick: () => void;
-}) {
+function TimelineItem({ item }: { item: ExperienceItem }) {
   return (
-    <div className="work-crosslink section-shell">
-      <div className="work-crosslink-inner reveal">
-        <p className="eyebrow">{eyebrow}</p>
-        <h3>{heading}</h3>
-        <button type="button" className="button primary magnetic" onClick={onClick}>
-          <span>{action}</span>
-          <span aria-hidden="true" className="button-mark">
-            ↗
-          </span>
-        </button>
+    <li className={`timeline-item reveal ${item.status ? "is-upcoming" : ""}`}>
+      <div className="timeline-meta">
+        <span className="timeline-period">{item.period}</span>
+        <div className="timeline-logo-frame">
+          <img src={item.logo} alt={item.logoAlt} loading="lazy" />
+        </div>
       </div>
-    </div>
+      <div className="timeline-body">
+        <span className="timeline-node" aria-hidden="true" />
+        <h3>{item.role}</h3>
+        <p className="timeline-org">{item.organisation}</p>
+        {item.status ? (
+          <span className="status-badge">
+            <span className="status-dot" aria-hidden="true" />
+            {item.status}
+          </span>
+        ) : null}
+        {item.summary ? <p>{item.summary}</p> : null}
+      </div>
+    </li>
+  );
+}
+
+function Projects() {
+  return (
+    <section id="projects" className="projects" aria-label="Projects">
+      <div className="projects-head section-shell">
+        <div className="section-index reveal reveal-left">02 / Projects</div>
+        <div className="section-head reveal">
+          <p className="eyebrow">Selected builds</p>
+          <h2 id="projects-title" className="section-title">
+            Things I&apos;ve built.
+          </h2>
+          <p className="section-lede">Real builds, each with its own object lesson.</p>
+        </div>
+      </div>
+      {projects.map((project, index) => (
+        <ProjectPanel key={project.id} project={project} index={index} />
+      ))}
+    </section>
   );
 }
 
@@ -785,7 +681,9 @@ function ProjectPanel({ project, index }: { project: Project; index: number }) {
       <div
         className={`project-copy reveal ${isReverse ? "reveal-right" : "reveal-left"}`}
       >
-        <p className="eyebrow">{String(index + 1).padStart(2, "0")} / Project</p>
+        <p className="eyebrow">
+          {pad(index + 1)} / {pad(projects.length)}
+        </p>
         <h3 id={`${project.id}-title`}>{project.title}</h3>
         <p className="project-hook">{project.hook}</p>
         <ul className="project-impact-list" aria-label={`${project.title} highlights`}>
@@ -812,29 +710,209 @@ function ProjectPanel({ project, index }: { project: Project; index: number }) {
         </div>
       </div>
       <div className={`project-model reveal ${isReverse ? "reveal-left" : "reveal-right"}`}>
-        <LazyModelCanvas project={project} index={index} />
+        <div className="model-stage">
+          <Suspense
+            fallback={
+              <img
+                className="model-fallback"
+                src={project.fallbackImage}
+                alt={`${project.title} 3D render`}
+              />
+            }
+          >
+            <ModelCanvas project={project} index={index} />
+          </Suspense>
+          <span className="model-hint" aria-hidden="true">
+            drag to rotate · click to open ↗
+          </span>
+        </div>
       </div>
     </article>
   );
 }
 
-function LazyModelCanvas({ project, index }: { project: Project; index: number }) {
+function About() {
   return (
-    <div className="model-stage">
-      <Suspense
-        fallback={
-          <img
-            className="model-fallback"
-            src={project.fallbackImage}
-            alt={`${project.title} placeholder render`}
-          />
-        }
+    <section id="about" className="about section-shell" aria-label="About">
+      <div className="section-index reveal reveal-left">03 / About</div>
+      <div className="about-copy reveal">
+        <p className="eyebrow">Operating notes</p>
+        <h2 id="about-title" className="section-title">
+          The best product people are builders.
+        </h2>
+        <p>
+          I like messy problems: tinker, find the real constraint, then ship the
+          prototype.
+        </p>
+        <p>
+          The best work starts with people: interviews, workflows, and small
+          details that become systems that hold up. At NUS, that through-line is
+          simple: understand, build, repeat.
+        </p>
+      </div>
+      <AboutSlideshow />
+    </section>
+  );
+}
+
+function AboutSlideshow() {
+  const prefersReducedMotion = useReducedMotion();
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [autoAdvanceCycle, setAutoAdvanceCycle] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const remainingMs = useRef(ABOUT_AUTO_ADVANCE_MS);
+  const autoAdvance = !prefersReducedMotion;
+  const slide = aboutSlides[activeSlide];
+
+  const showSlide = (direction: 1 | -1) => {
+    setActiveSlide((current) =>
+      (current + direction + aboutSlides.length) % aboutSlides.length,
+    );
+    setAutoAdvanceCycle((current) => current + 1);
+  };
+
+  // Every new slide gets a full countdown; pausing on hover keeps what is left.
+  useEffect(() => {
+    remainingMs.current = ABOUT_AUTO_ADVANCE_MS;
+  }, [autoAdvanceCycle]);
+
+  useEffect(() => {
+    if (!autoAdvance || isPaused) {
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = window.setTimeout(() => {
+      setActiveSlide((current) => (current + 1) % aboutSlides.length);
+      setAutoAdvanceCycle((current) => current + 1);
+    }, remainingMs.current);
+
+    return () => {
+      window.clearTimeout(timer);
+      remainingMs.current = Math.max(0, remainingMs.current - (Date.now() - startedAt));
+    };
+  }, [autoAdvance, autoAdvanceCycle, isPaused]);
+
+  return (
+    <figure
+      className="about-visual shell-card reveal reveal-right"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <button
+        type="button"
+        className="about-image"
+        aria-label={`Advance about slideshow from ${slide.title}`}
+        onClick={() => showSlide(1)}
       >
-        <ModelCanvas project={project} index={index} />
-      </Suspense>
-      <span className="model-hint" aria-hidden="true">
-        drag to rotate · click to open ↗
-      </span>
+        {aboutSlides.map((item, index) => (
+          <img
+            key={item.image}
+            src={item.image}
+            alt={item.alt}
+            className={index === activeSlide ? "is-active" : ""}
+            aria-hidden={index !== activeSlide}
+            style={{ objectPosition: item.objectPosition }}
+            loading="lazy"
+          />
+        ))}
+      </button>
+      <div className="about-slide-controls" aria-label="About image controls">
+        <button
+          type="button"
+          className="about-slide-control"
+          aria-label="Previous about image"
+          onClick={() => showSlide(-1)}
+        >
+          <span aria-hidden="true">←</span>
+        </button>
+        <div className="about-slide-status">
+          <span>
+            {pad(activeSlide + 1)} / {pad(aboutSlides.length)}
+          </span>
+          {autoAdvance ? (
+            <span className="about-progress" aria-hidden="true">
+              <span
+                key={autoAdvanceCycle}
+                className={`about-progress-fill ${isPaused ? "is-paused" : ""}`}
+                style={{ animationDuration: `${ABOUT_AUTO_ADVANCE_MS}ms` }}
+              />
+            </span>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="about-slide-control"
+          aria-label="Next about image"
+          onClick={() => showSlide(1)}
+        >
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <figcaption className="about-caption" key={slide.title}>
+        {slide.title}
+      </figcaption>
+    </figure>
+  );
+}
+
+function Toolkit() {
+  return (
+    <section id="skills" className="toolkit section-shell" aria-label="Toolkit">
+      <div className="section-index reveal reveal-left">04 / Toolkit</div>
+      <div className="section-head reveal">
+        <p className="eyebrow">Capability map</p>
+        <h2 className="section-title">What I bring into a room.</h2>
+        <p className="section-lede">
+          Product judgment first, then the technical surface area that lets the
+          work ship.
+        </p>
+      </div>
+      <div className="toolkit-board">
+        <article className="toolkit-row reveal">
+          <ToolkitRowHead index={1} title="Credentials" signal="Formal product and AI foundations" />
+          <ul className="credential-list" aria-label="Credentials">
+            {credentials.map((credential) => (
+              <li className="credential-badge" key={credential.title}>
+                <img src={credential.image} alt={credential.alt} loading="lazy" />
+                <span>{credential.title}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+        {skillGroups.map((group, index) => (
+          <article className="toolkit-row reveal" key={group.title}>
+            <ToolkitRowHead index={index + 2} title={group.title} signal={group.signal} />
+            <ul className="skill-chip-list" aria-label={`${group.title} skills`}>
+              {group.skills.map((skill) => (
+                <li className="skill-chip" key={skill.name}>
+                  {skill.logo ? (
+                    <img src={skill.logo} alt="" width={20} height={20} loading="lazy" />
+                  ) : null}
+                  {skill.name}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ToolkitRowHead({
+  index,
+  title,
+  signal,
+}: {
+  index: number;
+  title: string;
+  signal: string;
+}) {
+  return (
+    <div className="toolkit-row-head">
+      <span>{pad(index)}</span>
+      <h3>{title}</h3>
+      <p>{signal}</p>
     </div>
   );
 }
@@ -843,21 +921,24 @@ function Contact() {
   return (
     <section id="contact" className="contact section-shell" aria-label="Contact">
       <div className="contact-meta reveal reveal-left">
+        <p className="contact-index">05 / Contact</p>
         <p>Availability</p>
-        <strong>2027 January / Internships / Full-Time</strong>
+        <strong>{contact.availability}</strong>
         <p>Location</p>
-        <strong>Singapore / remote</strong>
+        <strong>{contact.location}</strong>
       </div>
       <div className="contact-copy reveal">
-        <p className="eyebrow">Contact</p>
-        <h2 id="contact-title">Let’s build something robust.</h2>
+        <p className="eyebrow">Get in touch</p>
+        <h2 id="contact-title" className="section-title">
+          Let’s build something robust.
+        </h2>
         <p>
           Send a defined problem, an ambitious idea, or a messy system that
           needs a calmer shape. I respond well to specificity and mildly
           unreasonable goals.
         </p>
         <div className="contact-actions">
-          <a href={EMAIL_HREF} className="button primary magnetic" {...NEW_TAB_LINK_PROPS}>
+          <a href={EMAIL_HREF} className="button primary magnetic">
             <span>Email Justin</span>
             <span aria-hidden="true" className="button-mark">
               ↗
@@ -885,10 +966,14 @@ function Contact() {
   );
 }
 
-function DockBar() {
+function DockBar({ isHidden }: { isHidden: boolean }) {
   return (
-    <div className="dock-bar" aria-label="Quick actions">
-      <a href={EMAIL_HREF} className="dock-button is-primary" {...NEW_TAB_LINK_PROPS}>
+    <div
+      className={`dock-bar ${isHidden ? "is-hidden" : ""}`}
+      aria-label="Quick actions"
+      inert={isHidden}
+    >
+      <a href={EMAIL_HREF} className="dock-button is-primary">
         <span className="dock-dot" aria-hidden="true" />
         Contact
       </a>

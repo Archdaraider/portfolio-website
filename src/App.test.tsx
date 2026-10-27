@@ -8,6 +8,8 @@ const lenisMocks = vi.hoisted(() => ({
   scrollTo: vi.fn(),
   raf: vi.fn(),
   destroy: vi.fn(),
+  stop: vi.fn(),
+  start: vi.fn(),
 }));
 
 vi.mock("lenis", () => ({
@@ -145,6 +147,40 @@ describe("App", () => {
     );
   });
 
+  it("also enters the site from a scroll gesture or the skip button", async () => {
+    render(<App />);
+    const intro = await screen.findByRole("dialog", { name: /Intro landing/i });
+
+    vi.useFakeTimers();
+    fireEvent.wheel(window, { deltaY: 40 });
+    expect(intro).toHaveAttribute("data-intro-phase", "pressing");
+    act(() => vi.advanceTimersByTime(1200));
+    expect(
+      screen.queryByRole("dialog", { name: /Intro landing/i }),
+    ).not.toBeInTheDocument();
+
+    window.sessionStorage.clear();
+    vi.useRealTimers();
+    fireEvent.click(screen.getByRole("link", { name: "Replay intro" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Skip intro/i }));
+    expect(
+      screen.queryByRole("dialog", { name: /Intro landing/i }),
+    ).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem("justin-portfolio-intro-seen")).toBe("true");
+  });
+
+  it("keeps fixed navigation outside the transformed portfolio shell", () => {
+    window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
+    render(<App />);
+
+    const shell = document.querySelector(".portfolio-shell");
+    for (const selector of [".site-nav", ".scroll-wheel", ".dock-bar"]) {
+      const element = document.querySelector(selector);
+      expect(element).not.toBeNull();
+      expect(shell?.contains(element)).toBe(false);
+    }
+  });
+
   it("keeps the portfolio shell dimmed until the intro finishes", async () => {
     render(<App />);
     await screen.findByRole("button", { name: /click me/i });
@@ -209,13 +245,13 @@ describe("App", () => {
     );
   });
 
-  it("shows January 2027 internship and full-time availability", () => {
+  it("shows full-time availability from January 2028", () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
 
     render(<App />);
 
     expect(
-      screen.getByText("2027 January / Internships / Full-Time"),
+      screen.getByText("Full-time roles from Jan 2028 / Open to chats now"),
     ).toBeInTheDocument();
   });
 
@@ -233,7 +269,7 @@ describe("App", () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
     render(<App />);
 
-    fireEvent.click(screen.getByRole("link", { name: "J" }));
+    fireEvent.click(screen.getByRole("link", { name: "Replay intro" }));
 
     return expect(
       screen.findByRole("dialog", { name: /Intro landing/i }),
@@ -260,30 +296,41 @@ describe("App", () => {
     expect(screen.queryByText("Discovery before code")).not.toBeInTheDocument();
     expect(screen.queryByText("First principles, then depth")).not.toBeInTheDocument();
     expect(screen.queryByText("Ship, then measure")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: /^Work$/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /^Experience$/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /^Projects$/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /^Toolkit$/i })).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: /Contact/i }),
     ).toBeInTheDocument();
   });
 
-  it("renders a pulsing NUS BAIS link token in the hero metadata", () => {
+  it("links the NUS BAIS degree and leads the hero with the incoming role", () => {
     render(<App />);
 
-    const baisLink = screen.getByRole("link", { name: /click me/i });
+    const baisLink = screen.getByRole("link", { name: /NUS Business AI Systems/i });
     expect(baisLink).toHaveAttribute(
       "href",
       "https://www.comp.nus.edu.sg/programmes/ug/bais/",
     );
     expect(baisLink).toHaveAttribute("target", "_blank");
-    expect(baisLink).toHaveClass("bais-pulse-token");
-    expect(screen.getByText(/NUS Business AI Systems/i)).toHaveClass(
-      "hero-meta-primary",
+    expect(screen.getByText(/Graduating Dec 2027/i)).toHaveClass("hero-meta-primary");
+    expect(screen.getByRole("list", { name: "Previous roles" })).toHaveTextContent(
+      "Product / QoE Research Intern at IMDA",
     );
-    expect(screen.getByText(/Graduating Dec 2027/i)).toHaveClass(
-      "hero-meta-primary",
-    );
+    expect(
+      screen.getByRole("link", {
+        name: /Incoming Technical Product Management Intern @ Temasek Holdings/i,
+      }),
+    ).toHaveAttribute("href", "#experience");
+  });
+
+  it("surfaces sourced impact stats under the hero", () => {
+    render(<App />);
+
+    const highlights = screen.getByRole("region", { name: /Impact highlights/i });
+    expect(within(highlights).getByText("~20%", { selector: ".sr-only" })).toBeInTheDocument();
+    expect(within(highlights).getByText("CWT Globelink")).toBeInTheDocument();
+    expect(within(highlights).getByText("30+", { selector: ".sr-only" })).toBeInTheDocument();
   });
 
   it("renders all four open project model stages in order", () => {
@@ -354,154 +401,34 @@ describe("App", () => {
     );
   });
 
-  it("surfaces skills and certifications in a categorized atlas", () => {
+  it("surfaces credentials and skills in a compact toolkit", () => {
     render(<App />);
 
-    expect(screen.queryByLabelText(/Skills and certifications/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Skill map/i })).toBeInTheDocument();
-    const skillHeadings = screen.getAllByRole("heading", { level: 3 });
-    expect(skillHeadings[0]).toHaveTextContent("Credentials");
+    const toolkit = screen.getByRole("region", { name: /^Toolkit$/i });
+    const headings = within(toolkit)
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual([
+      "Credentials",
+      "Product judgment",
+      "AI systems",
+      "Product engineering",
+      "Data fluency",
+      "Operations",
+    ]);
     expect(
-      screen.getByRole("img", { name: /IBM Product Management/i }),
-    ).toHaveAttribute("src", "/images/IBM-PM-cert.png");
+      within(toolkit).getByRole("img", { name: /IBM Product Management/i }),
+    ).toHaveAttribute("src", "/images/IBM-PM-cert.webp");
     expect(
-      screen.getByRole("img", { name: /Google AI Professional/i }),
-    ).toHaveAttribute("src", "/images/google-ai-professional.png");
-    expect(
-      screen.getByRole("img", { name: /NUS Product Club/i }),
-    ).toHaveAttribute("src", "/images/NUS-product-club.png");
-    const credentials = screen
-      .getByRole("heading", { name: /Credentials/i })
-      .closest("article");
-    expect(credentials).not.toBeNull();
-    expect(within(credentials as HTMLElement).queryByRole("list")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("IBM Product Management â€” Professional Certification"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Google AI â€” Professional Certification"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("NUS Product Club â€” Member")).not.toBeInTheDocument();
-    const productJudgment = screen
-      .getByRole("heading", { name: /Product judgment/i })
-      .closest("article");
-    expect(productJudgment).not.toBeNull();
-    expect(
-      within(productJudgment as HTMLElement).getByText("Product Management essential skills"),
-    ).toBeInTheDocument();
-    for (const skill of [
-      "Agile / Scrum Methods",
-      "Product Market Research",
-      "User Acceptance Testing",
-      "UI / UX Design",
-      "Roadmapping",
-      "QoE Benchmarking",
-    ]) {
-      expect(within(productJudgment as HTMLElement).getByText(skill)).toBeInTheDocument();
-    }
-    for (const removedSkill of [
-      "Product Discovery",
-      "User Research",
-      "First-Principles Scoping",
-      "Build-vs-Buy Analysis",
-    ]) {
-      expect(
-        within(productJudgment as HTMLElement).queryByText(removedSkill),
-      ).not.toBeInTheDocument();
-    }
-    expect(screen.getByRole("heading", { name: /AI systems/i })).toBeInTheDocument();
-    const aiSystems = screen
-      .getByRole("heading", { name: /AI systems/i })
-      .closest("article");
-    expect(aiSystems).not.toBeNull();
-    expect(screen.getAllByText("Claude Code").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("OpenAI Codex").length).toBeGreaterThan(0);
-    expect(screen.getByText("MCP")).toBeInTheDocument();
-    expect(screen.getByText("Agent Development")).toBeInTheDocument();
-    expect(screen.getByText("AI-Native Engineering")).toBeInTheDocument();
-    expect(
-      within(aiSystems as HTMLElement).queryByText("OpenAI Vision"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: /Claude Code logo/i }),
-    ).toHaveAttribute("src", "/images/claude-code-logo.png");
-    expect(
-      screen.getByRole("img", { name: /OpenAI Codex logo/i }),
-    ).toHaveAttribute("src", "/images/openai-codex-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Django logo/i }),
-    ).toHaveAttribute("src", "/images/django-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Flask logo/i }),
-    ).toHaveAttribute("src", "/images/flask-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Java logo/i }),
-    ).toHaveAttribute("src", "/images/java-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Python logo/i }),
-    ).toHaveAttribute("src", "/images/python-logo.png");
-    expect(
-      screen.getByRole("img", { name: /React logo/i }),
-    ).toHaveAttribute("src", "/images/react-logo.png");
-    expect(
-      screen.getByRole("img", { name: /TypeScript logo/i }),
-    ).toHaveAttribute("src", "/images/typescript-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Tableau logo/i }),
-    ).toHaveAttribute("src", "/images/tableau-logo.png");
-    expect(
-      screen.getByRole("img", { name: "SQL logo" }),
-    ).toHaveAttribute("src", "/images/sql-logo.jpg");
-    expect(
-      screen.getByRole("img", { name: /Oracle APEX logo/i }),
-    ).toHaveAttribute("src", "/images/oracle-apex-logo.jpg");
-    expect(
-      screen.getByRole("img", { name: "Oracle PL/SQL logo" }),
-    ).toHaveAttribute("src", "/images/plsql-logo.jpg");
-    expect(
-      screen.getByRole("img", { name: /Docker logo/i }),
-    ).toHaveAttribute("src", "/images/docker-logo.png");
-    expect(
-      screen.getByRole("img", { name: /n8n logo/i }),
-    ).toHaveAttribute("src", "/images/n8n-logo.png");
-    expect(
-      screen.getByRole("img", { name: /Stripe logo/i }),
-    ).toHaveAttribute("src", "/images/stripe-logo.svg");
-    expect(
-      screen.getByRole("img", { name: /Railway logo/i }),
-    ).toHaveAttribute("src", "/images/railway-logo.svg");
-    expect(
-      screen.getByRole("img", { name: /Supabase logo/i }),
-    ).toHaveAttribute("src", "/images/supabase-logo.png");
-    const productEngineering = screen
-      .getByRole("heading", { name: /Product engineering/i })
-      .closest("article");
-    expect(productEngineering).not.toBeNull();
-    expect(within(productEngineering as HTMLElement).queryByRole("list")).not.toBeInTheDocument();
-    for (const duplicateSkill of ["React", "TypeScript", "Flask", "Django", "Java", "Python"]) {
-      expect(within(productEngineering as HTMLElement).getByText(duplicateSkill)).toBeInTheDocument();
-    }
-    const dataFluency = screen
-      .getByRole("heading", { name: /Data fluency/i })
-      .closest("article");
-    expect(dataFluency).not.toBeNull();
-    expect(
-      within(dataFluency as HTMLElement).queryByText("QoE Benchmarking"),
-    ).not.toBeInTheDocument();
-    const operations = screen
-      .getByRole("heading", { name: /Operations/i })
-      .closest("article");
-    expect(operations).not.toBeNull();
-    expect(within(operations as HTMLElement).queryByText("OAuth")).not.toBeInTheDocument();
-    expect(within(operations as HTMLElement).queryByText("PDPA")).not.toBeInTheDocument();
-    expect(screen.getAllByText(/IBM Product Management/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Google AI/i).length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText(/Discovery interviews, roadmaps/i),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/External training and product-community/i),
-    ).not.toBeInTheDocument();
+      within(toolkit).getByRole("list", { name: "Product judgment skills" }),
+    ).toHaveTextContent("QoE Benchmarking");
+
+    const aiSkills = within(toolkit).getByRole("list", { name: "AI systems skills" });
+    expect(within(aiSkills).getByText("Claude Code")).toBeInTheDocument();
+    expect(within(aiSkills).getByText("OpenAI Codex")).toBeInTheDocument();
+    // Logos sit beside their names, so they stay decorative and appear only once.
+    expect(within(toolkit).getAllByText("Claude Code")).toHaveLength(1);
+    expect(within(toolkit).queryByRole("img", { name: /React logo/i })).toBeNull();
   });
 
   it("keeps the primary HR actions obvious", () => {
@@ -509,7 +436,10 @@ describe("App", () => {
 
     expect(
       screen.getByRole("link", { name: /View projects/i }),
-    ).toHaveAttribute("href", "#work");
+    ).toHaveAttribute("href", "#projects");
+    expect(
+      screen.getByRole("link", { name: /View experience/i }),
+    ).toHaveAttribute("href", "#experience");
 
     const resumeLinks = screen.getAllByRole("link", {
       name: /Download resume/i,
@@ -528,9 +458,10 @@ describe("App", () => {
     render(<App />);
 
     const links = screen.getAllByRole("link");
+    // mailto: hands off to the mail client, so a new tab would just be left blank.
     const outboundLinks = links.filter((link) => {
       const href = link.getAttribute("href") ?? "";
-      return href !== "" && !href.startsWith("#");
+      return href !== "" && !href.startsWith("#") && !href.startsWith("mailto:");
     });
 
     expect(outboundLinks.length).toBeGreaterThan(0);
@@ -540,15 +471,16 @@ describe("App", () => {
     }
   });
 
-  it("exposes the Projects/Experiences split selector", () => {
+  it("shows experience before projects without a tab switch", () => {
     render(<App />);
 
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    const experienceSection = screen.getByRole("region", { name: /^Experience$/i });
+    const projectsSection = screen.getByRole("region", { name: /^Projects$/i });
     expect(
-      screen.getByRole("tab", { name: /Projects/i }),
-    ).toHaveAttribute("aria-selected", "true");
-    expect(
-      screen.getByRole("tab", { name: /Experiences/i }),
-    ).toBeInTheDocument();
+      experienceSection.compareDocumentPosition(projectsSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("keeps project 3D canvases enabled on coarse-pointer mobile devices", async () => {
@@ -570,75 +502,41 @@ describe("App", () => {
     );
   });
 
-  it("scrolls work selections to the first item in the selected view", async () => {
+  it("scrolls in-page links to their section", async () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
     const scrollTargets: string[] = [];
-    const scrollIntoView = vi.fn(function (this: Element) {
+    Element.prototype.scrollIntoView = vi.fn(function (this: Element) {
       scrollTargets.push((this as HTMLElement).id);
     });
-    Element.prototype.scrollIntoView = scrollIntoView;
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Experiences/i }));
-    await screen.findByRole("tabpanel", { name: /Experiences/i });
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
-    expect(scrollTargets.at(-1)).toBe("experience-0");
+    fireEvent.click(screen.getByRole("link", { name: /View experience/i }));
+    expect(scrollTargets.at(-1)).toBe("experience");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Projects/i }));
-    await screen.findByRole("tabpanel", { name: /Projects/i });
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
-    expect(scrollTargets.at(-1)).toBe("grounded");
+    fireEvent.click(screen.getByRole("link", { name: /View projects/i }));
+    expect(scrollTargets.at(-1)).toBe("projects");
   });
 
-  it("uses the smooth scroll controller on the first work selection click", async () => {
+  it("uses the smooth scroll controller for in-page links", async () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
     vi.stubGlobal(
       "ResizeObserver",
-      vi.fn().mockImplementation(() => ({
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-      })),
+      vi.fn(function () {
+        return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+      }),
     );
-    window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-      window.setTimeout(() => callback(0), 0);
-      return 1;
-    });
+    window.requestAnimationFrame = vi.fn(() => 1);
     window.cancelAnimationFrame = vi.fn();
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Experiences/i }));
-    await screen.findByRole("tabpanel", { name: /Experiences/i });
+    fireEvent.click(screen.getByRole("link", { name: /View experience/i }));
 
     await waitFor(() => expect(lenisMocks.scrollTo).toHaveBeenCalledTimes(1));
     expect(lenisMocks.scrollTo.mock.calls[0][0]).toBe(
-      document.getElementById("experience-0"),
+      document.getElementById("experience"),
     );
-  });
-
-  it("scrolls work crosslinks after the next work view has rendered", async () => {
-    window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
-    const scrollContexts: string[] = [];
-    const scrollIntoView = vi.fn(() => {
-      scrollContexts.push(
-        screen.getByRole("tabpanel").getAttribute("aria-label") ?? "",
-      );
-    });
-    Element.prototype.scrollIntoView = scrollIntoView;
-
-    render(<App />);
-
-    fireEvent.click(screen.getByRole("button", { name: /View experiences/i }));
-    await screen.findByRole("tabpanel", { name: /Experiences/i });
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
-    expect(scrollContexts.at(-1)).toBe("Experiences");
-
-    fireEvent.click(screen.getByRole("button", { name: /View projects/i }));
-    await screen.findByRole("tabpanel", { name: /Projects/i });
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
-    expect(scrollContexts.at(-1)).toBe("Projects");
   });
 
   it("renders a clickable about slideshow with manual controls", () => {
@@ -705,26 +603,26 @@ describe("App", () => {
     );
   });
 
-  it("renders the Synapxe experience and company logo rail", async () => {
+  it("renders the Temasek Holdings experience and company logo rail", () => {
     window.sessionStorage.setItem("justin-portfolio-intro-seen", "true");
     render(<App />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Experiences/i }));
-    await screen.findByRole("tabpanel", { name: /Experiences/i });
-
+    const experienceSection = screen.getByRole("region", { name: /^Experience$/i });
     expect(
-      screen.getByRole("heading", { name: "Real Contributions in Real Companies" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "AI Product Management & AI Strategy Intern",
+      within(experienceSection).getByRole("heading", {
+        name: "Real Contributions in Real Companies",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Incoming")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Synapxe logo" })).toHaveAttribute(
-      "src",
-      "/images/synapxe-logo.jpeg",
-    );
+    expect(
+      within(experienceSection).getByRole("heading", {
+        name: "Technical Product Management Intern",
+      }),
+    ).toBeInTheDocument();
+    expect(within(experienceSection).getByText("Incoming")).toBeInTheDocument();
+    expect(within(experienceSection).getByText("Jan 2027 - Jun 2027")).toBeInTheDocument();
+    expect(
+      within(experienceSection).getByRole("img", { name: "Temasek Holdings logo" }),
+    ).toHaveAttribute("src", "/images/temasek-holdings-logo.webp");
     expect(document.querySelectorAll(".timeline-logo-frame img")).toHaveLength(4);
   });
 });

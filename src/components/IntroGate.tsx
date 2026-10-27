@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Center,
@@ -18,6 +18,8 @@ const INTRO_KEYCAP_ROTATION_Z = 0;
 const INTRO_REBOUND_START_MS = 240;
 const INTRO_REVEAL_START_MS = 560;
 const INTRO_COMPLETE_MS = 1180;
+const INTRO_ENTER_KEYS = new Set(["Enter", " ", "Escape", "ArrowDown", "PageDown"]);
+const INTRO_SWIPE_PX = 24;
 
 type IntroPhase = "idle" | "pressing" | "rebounding" | "revealing";
 
@@ -29,12 +31,44 @@ type IntroGateProps = {
 export default function IntroGate({ isVisible, onEnter }: IntroGateProps) {
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<IntroPhase>("idle");
+  // Mirrors `phase` synchronously so a click plus a key or wheel event can't double-enter.
+  const phaseRef = useRef<IntroPhase>("idle");
   const timers = useRef<number[]>([]);
 
   const clearIntroTimers = () => {
     timers.current.forEach((timer) => window.clearTimeout(timer));
     timers.current = [];
   };
+
+  const changePhase = (next: IntroPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
+
+  const enter = () => {
+    if (phaseRef.current !== "idle") return;
+
+    if (prefersReducedMotion) {
+      changePhase("revealing");
+      onEnter();
+      return;
+    }
+
+    changePhase("pressing");
+    timers.current = [
+      window.setTimeout(() => changePhase("rebounding"), INTRO_REBOUND_START_MS),
+      window.setTimeout(() => changePhase("revealing"), INTRO_REVEAL_START_MS),
+      window.setTimeout(onEnter, INTRO_COMPLETE_MS),
+    ];
+  };
+
+  const skip = () => {
+    if (phaseRef.current !== "idle") return;
+    changePhase("revealing");
+    onEnter();
+  };
+
+  const onGesture = useEffectEvent(enter);
 
   useEffect(() => {
     if (!isVisible) {
@@ -44,26 +78,53 @@ export default function IntroGate({ isVisible, onEnter }: IntroGateProps) {
     return clearIntroTimers;
   }, [isVisible]);
 
-  if (!isVisible) {
-    return null;
-  }
-
-  const enter = () => {
-    if (phase !== "idle") return;
-
-    if (prefersReducedMotion) {
-      setPhase("revealing");
-      onEnter();
+  // Scrolling, swiping up or pressing a key also presses the keycap, so nobody gets stuck here.
+  useEffect(() => {
+    if (!isVisible) {
       return;
     }
 
-    setPhase("pressing");
-    timers.current = [
-      window.setTimeout(() => setPhase("rebounding"), INTRO_REBOUND_START_MS),
-      window.setTimeout(() => setPhase("revealing"), INTRO_REVEAL_START_MS),
-      window.setTimeout(onEnter, INTRO_COMPLETE_MS),
-    ];
-  };
+    let touchStartY: number | null = null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      // Let focused buttons handle their own Enter/Space activation.
+      if (target?.closest("button") && (event.key === "Enter" || event.key === " ")) {
+        return;
+      }
+      if (INTRO_ENTER_KEYS.has(event.key)) {
+        event.preventDefault();
+        onGesture();
+      }
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY > 4) onGesture();
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      touchStartY = event.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY;
+      if (touchStartY !== null && currentY !== undefined && touchStartY - currentY > INTRO_SWIPE_PX) {
+        touchStartY = null;
+        onGesture();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [isVisible]);
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <motion.section
@@ -77,10 +138,13 @@ export default function IntroGate({ isVisible, onEnter }: IntroGateProps) {
       exit={{ opacity: 0 }}
     >
       <div className="intro-noise" aria-hidden="true" />
+      <button type="button" className="intro-skip" onClick={skip}>
+        Skip intro
+      </button>
       <motion.button
         type="button"
         className="intro-keycap-button"
-        aria-label="click me"
+        aria-label="Click me to enter the portfolio"
         onClick={enter}
       >
         <span className="intro-burst" aria-hidden="true" />
@@ -113,6 +177,7 @@ export default function IntroGate({ isVisible, onEnter }: IntroGateProps) {
           animate={{ opacity: phase === "idle" ? 1 : 0, y: phase === "idle" ? 0 : 10 }}
         >
           click me
+          <span className="intro-hint">or scroll / press enter</span>
         </motion.span>
       </motion.button>
     </motion.section>

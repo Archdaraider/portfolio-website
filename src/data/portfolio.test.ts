@@ -1,22 +1,45 @@
+// @ts-expect-error Node built-in types are not included in the app tsconfig.
+import { existsSync } from "node:fs";
 import {
   aboutSlides,
   contact,
+  credentials,
   experience,
-  marquee,
+  profile,
   projects,
   skillGroups,
-  swapPoints,
+  stats,
 } from "./portfolio";
+
+const publicAsset = (path: string) => existsSync(`public${path}`);
 
 describe("portfolio data", () => {
   it("centralises all project assets and links", () => {
     expect(projects).toHaveLength(4);
     for (const project of projects) {
       expect(project.modelPath).toMatch(/^\/models\/.+\.glb$/);
-      expect(project.fallbackImage).toMatch(/^\/images\/.+\.png$/);
+      expect(project.fallbackImage).toMatch(/^\/images\/.+\.webp$/);
       expect(project.modelHref).toMatch(/^https?:\/\//);
       expect(project.links.length).toBeGreaterThanOrEqual(1);
       expect(project.stack.length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("points every referenced image and model at a file in public/", () => {
+    const paths = [
+      profile.portraitImage,
+      contact.resumePath,
+      ...projects.flatMap((project) => [project.modelPath, project.fallbackImage]),
+      ...experience.map((item) => item.logo),
+      ...aboutSlides.map((slide) => slide.image),
+      ...credentials.map((credential) => credential.image),
+      ...skillGroups.flatMap((group) =>
+        group.skills.flatMap((skill) => (skill.logo ? [skill.logo] : [])),
+      ),
+    ];
+
+    for (const path of paths) {
+      expect(publicAsset(path), path).toBe(true);
     }
   });
 
@@ -50,17 +73,6 @@ describe("portfolio data", () => {
     ]);
   });
 
-  it("lists the planned model SWAP hooks for the README", () => {
-    expect(swapPoints).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: "groundedModel" }),
-        expect.objectContaining({ key: "claimIntegrityAgentModel" }),
-        expect.objectContaining({ key: "lutherAIBotModel" }),
-        expect.objectContaining({ key: "auroraMartModel" }),
-      ]),
-    );
-  });
-
   it("uses Justin's real contact details", () => {
     expect(contact.email).toBe("justingohzk@gmail.com");
     expect(contact.resumePath).toBe("/JustinGoh_Resume.pdf");
@@ -70,13 +82,6 @@ describe("portfolio data", () => {
 
   it("defines the about slideshow images and event captions", () => {
     expect(aboutSlides).toHaveLength(5);
-    expect(aboutSlides.map((slide) => slide.image)).toEqual([
-      "/images/IMDA-internship.jpg",
-      "/images/shopback-pmtalk.jpg",
-      "/images/hackathon.png",
-      "/images/carousellxopenai-hackathon.jpg",
-      "/images/nus-interhall-hackathon.jpg",
-    ]);
     expect(aboutSlides.map((slide) => slide.title)).toEqual([
       "QoE Product Management and Research Internship @ IMDA",
       "ShopBack Product Managers x NUS Entrepreneur Society",
@@ -86,91 +91,65 @@ describe("portfolio data", () => {
     ]);
   });
 
-  it("lists Synapxe first and provides a logo for every experience", () => {
+  it("lists Temasek Holdings first and provides a logo for every experience", () => {
     expect(experience[0]).toEqual(
       expect.objectContaining({
-        role: "AI Product Management & AI Strategy Intern",
-        organisation: "Synapxe",
-        period: "Jan 2027",
-        summary: "Incoming",
-        logo: "/images/synapxe-logo.jpeg",
+        role: "Technical Product Management Intern",
+        organisation: "Temasek Holdings",
+        period: "Jan 2027 - Jun 2027",
+        status: "Incoming",
+        logo: "/images/temasek-holdings-logo.webp",
       }),
     );
 
     for (const item of experience) {
-      expect(item.logo).toMatch(/^\/images\/.+\.(?:jpe?g|png)$/i);
       expect(item.logoAlt).toMatch(/logo$/i);
     }
   });
 
-  it("categorizes every listed skill in the skill map", () => {
-    const categorizedSkills = new Set(
-      skillGroups.flatMap((group) => group.skills),
-    );
+  it("only lists past roles in the hero once Temasek is the next role", () => {
+    expect(profile.previousRoles).toEqual([
+      "Product / QoE Research Intern at IMDA",
+      "Software Engineer Intern at CWT Globelink",
+      "Teaching Assistant at NUS Computing",
+    ]);
+  });
 
-    expect(skillGroups[0].title).toBe("Credentials");
-    expect(skillGroups[0].credentials?.map((credential) => credential.image)).toEqual([
-      "/images/IBM-PM-cert.png",
-      "/images/google-ai-professional.png",
-      "/images/NUS-product-club.png",
-    ]);
-    expect(skillGroups[0].skills).toEqual([]);
-    expect(skillGroups.find((group) => group.title === "Product judgment")).toEqual(
-      expect.objectContaining({
-        signal: "Product Management essential skills",
-        skills: [
-          "Agile / Scrum Methods",
-          "Product Market Research",
-          "User Acceptance Testing",
-          "UI / UX Design",
-          "Roadmapping",
-          "QoE Benchmarking",
-        ],
-      }),
-    );
-    expect(skillGroups.find((group) => group.title === "AI systems")?.skills).toEqual([
-      "Claude Code",
-      "OpenAI Codex",
-      "MCP",
-      "Agent Development",
-      "AI-Native Engineering",
-    ]);
-    expect(skillGroups.find((group) => group.title === "Product engineering")?.logos?.map((logo) => logo.image)).toEqual([
-      "/images/claude-code-logo.png",
-      "/images/openai-codex-logo.png",
-      "/images/typescript-logo.png",
-      "/images/django-logo.png",
-      "/images/flask-logo.png",
-      "/images/java-logo.png",
-      "/images/python-logo.png",
-      "/images/react-logo.png",
-    ]);
-    expect(skillGroups.find((group) => group.title === "Data fluency")?.logos?.map((logo) => logo.image)).toEqual([
-      "/images/sql-logo.jpg",
-      "/images/tableau-logo.png",
-      "/images/oracle-apex-logo.jpg",
-      "/images/plsql-logo.jpg",
-    ]);
-    const operations = skillGroups.find((group) => group.title === "Operations");
-    expect(operations?.skills).toEqual([
-      "Docker",
-      "n8n",
-      "Stripe",
-      "Railway",
-      "Supabase",
-    ]);
-    expect(operations?.skills).not.toContain("OAuth");
-    expect(operations?.skills).not.toContain("PDPA");
-    expect(operations?.logos?.map((logo) => logo.image)).toEqual([
-      "/images/docker-logo.png",
-      "/images/n8n-logo.png",
-      "/images/stripe-logo.svg",
-      "/images/railway-logo.svg",
-      "/images/supabase-logo.png",
-    ]);
-
-    for (const skill of marquee.skills) {
-      expect(categorizedSkills).toContain(skill);
+  it("backs every headline stat with a source", () => {
+    expect(stats).toHaveLength(4);
+    for (const stat of stats) {
+      expect(stat.value).toBeGreaterThan(0);
+      expect(stat.source).not.toBe("");
     }
+  });
+
+  it("keeps the toolkit categorised without duplicate skills", () => {
+    expect(credentials.map((credential) => credential.title)).toEqual([
+      "IBM Product Management",
+      "Google AI Professional",
+      "NUS Product Club",
+    ]);
+    expect(skillGroups.map((group) => group.title)).toEqual([
+      "Product judgment",
+      "AI systems",
+      "Product engineering",
+      "Data fluency",
+      "Operations",
+    ]);
+    expect(
+      skillGroups.find((group) => group.title === "Product judgment")?.skills.map(
+        (skill) => skill.name,
+      ),
+    ).toEqual([
+      "Agile / Scrum Methods",
+      "Product Market Research",
+      "User Acceptance Testing",
+      "UI / UX Design",
+      "Roadmapping",
+      "QoE Benchmarking",
+    ]);
+
+    const names = skillGroups.flatMap((group) => group.skills.map((skill) => skill.name));
+    expect(new Set(names).size).toBe(names.length);
   });
 });
