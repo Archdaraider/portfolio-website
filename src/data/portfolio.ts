@@ -28,14 +28,6 @@ export type ExperienceItem = {
   logoAlt: string;
 };
 
-export type Stat = {
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  label: string;
-  source: string;
-};
-
 export type Credential = {
   title: string;
   image: string;
@@ -66,6 +58,8 @@ export const profile = {
   degreeHref: "https://www.comp.nus.edu.sg/programmes/ug/bais/",
   year: "Penultimate year",
   graduation: "Graduating Dec 2027",
+  // Swept with a marker highlight in the hero; must appear inside `positioning`.
+  positioningHighlight: "AI-focused product builder.",
   positioning:
     "AI-focused product builder. I love solving problems, and creating problems to solve.",
   summary:
@@ -77,33 +71,6 @@ export const profile = {
   ],
   portraitImage: "/images/justin-profile.webp",
 };
-
-// Proof points pulled from the experience and about content below.
-export const stats: Stat[] = [
-  {
-    value: 20,
-    prefix: "~",
-    suffix: "%",
-    label: "faster report generation",
-    source: "CWT Globelink",
-  },
-  {
-    value: 4,
-    label: "partners coordinated through UAT",
-    source: "IMDA",
-  },
-  {
-    value: 30,
-    suffix: "+",
-    label: "students led in weekly labs",
-    source: "NUS Computing",
-  },
-  {
-    value: 3,
-    label: "hackathons built through",
-    source: "Codex / OpenAI / InterHall",
-  },
-];
 
 export const experience: ExperienceItem[] = [
   {

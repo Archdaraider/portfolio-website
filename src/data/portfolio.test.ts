@@ -8,7 +8,6 @@ import {
   profile,
   projects,
   skillGroups,
-  stats,
 } from "./portfolio";
 
 const publicAsset = (path: string) => existsSync(`public${path}`);
@@ -113,14 +112,6 @@ describe("portfolio data", () => {
       "Software Engineer Intern at CWT Globelink",
       "Teaching Assistant at NUS Computing",
     ]);
-  });
-
-  it("backs every headline stat with a source", () => {
-    expect(stats).toHaveLength(4);
-    for (const stat of stats) {
-      expect(stat.value).toBeGreaterThan(0);
-      expect(stat.source).not.toBe("");
-    }
   });
 
   it("keeps the toolkit categorised without duplicate skills", () => {

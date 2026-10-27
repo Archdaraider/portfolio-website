@@ -2,7 +2,7 @@
 
 :root {
   color: #1c1b1b;
-  background: #efedec;
+  background: #e9e2d8;
   font-family:
     "Outfit",
     "Aptos",
@@ -11,7 +11,10 @@
   font-synthesis: none;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
-  --canvas: #efedec;
+  --canvas: #e9e2d8;
+  --espresso: #1f1814;
+  --cream: #f3ebe2;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --paper: #eceae6;
   --surface: #e4e1e1;
   --sand: #e2d9c8;
@@ -58,9 +61,26 @@ body {
   min-width: 320px;
   min-height: 100dvh;
   overflow-x: hidden;
+  /* Warm, slightly deeper paper with soft pools of colour down the page. */
   background:
-    radial-gradient(circle at 14% 10%, rgba(196, 164, 132, 0.24), transparent 28rem),
-    linear-gradient(180deg, #efedec 0%, #e8e2da 52%, #efedec 100%);
+    radial-gradient(60rem 42rem at 8% 0%, rgba(212, 163, 115, 0.34), transparent 70%),
+    radial-gradient(52rem 40rem at 96% 14%, rgba(179, 90, 68, 0.13), transparent 70%),
+    radial-gradient(56rem 46rem at 0% 42%, rgba(91, 92, 76, 0.12), transparent 70%),
+    radial-gradient(60rem 50rem at 100% 66%, rgba(212, 163, 115, 0.22), transparent 70%),
+    linear-gradient(180deg, #ece5db 0%, #e3d8ca 34%, #e8dfd3 62%, #ddd0bf 100%);
+}
+
+/* Film grain over the paper, underneath the content. */
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.16;
+  background-image: var(--grain);
+  background-size: 200px 200px;
+  mix-blend-mode: multiply;
 }
 
 body::before {
@@ -69,7 +89,7 @@ body::before {
   z-index: 1;
   pointer-events: none;
   content: "";
-  opacity: 0.055;
+  opacity: 0.04;
   background-image:
     linear-gradient(rgba(28, 27, 27, 0.22) 1px, transparent 1px),
     linear-gradient(90deg, rgba(28, 27, 27, 0.18) 1px, transparent 1px);
@@ -84,15 +104,6 @@ main {
 
 section[id] {
   scroll-margin-top: 96px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .portfolio-shell {
@@ -674,7 +685,86 @@ button:focus-visible {
 
 /* ---------- Hero ---------- */
 
+/* Full-bleed light field behind the hero: drifting colour pools plus a cursor spotlight. */
+.hero-aurora {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: -1;
+  width: 100vw;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent);
+  mask-image: linear-gradient(180deg, #000 72%, transparent);
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  animation: aurora-drift 24s ease-in-out infinite alternate;
+}
+
+.aurora-blob.is-ochre {
+  top: -14vw;
+  left: -10vw;
+  width: 52vw;
+  height: 52vw;
+  background: radial-gradient(circle, rgba(212, 163, 115, 0.62), transparent 66%);
+}
+
+.aurora-blob.is-terracotta {
+  top: 4vh;
+  right: -8vw;
+  width: 44vw;
+  height: 44vw;
+  background: radial-gradient(circle, rgba(179, 90, 68, 0.36), transparent 66%);
+  animation-duration: 28s;
+  animation-delay: -8s;
+}
+
+.aurora-blob.is-olive {
+  bottom: -18vw;
+  left: 28vw;
+  width: 42vw;
+  height: 42vw;
+  background: radial-gradient(circle, rgba(91, 92, 76, 0.26), transparent 66%);
+  animation-duration: 32s;
+  animation-delay: -14s;
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(5vw, 4vh, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(-4vw, -3vh, 0) scale(0.94);
+  }
+}
+
+.hero-spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    30rem circle at var(--mx, 50%) var(--my, 40%),
+    rgba(255, 246, 236, 0.6),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 700ms var(--ease-out);
+}
+
+.hero.is-pointer .hero-spotlight {
+  opacity: 1;
+}
+
 .hero {
+  position: relative;
+  isolation: isolate;
   min-height: 100dvh;
   align-items: center;
   padding-top: clamp(8rem, 13vw, 12rem);
@@ -756,6 +846,8 @@ button:focus-visible {
 }
 
 .status-pill {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -776,6 +868,32 @@ button:focus-visible {
     border-color 180ms var(--ease-out),
     background-color 180ms var(--ease-out),
     transform 180ms var(--ease-out);
+}
+
+/* A slow sheen passes over the pill every few seconds. */
+.status-pill::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.75) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: pill-sheen 5.5s var(--ease-out) 2.2s infinite;
+  pointer-events: none;
+}
+
+@keyframes pill-sheen {
+  0%,
+  70% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 .status-pill-text {
@@ -877,6 +995,40 @@ button:focus-visible {
   }
 }
 
+.hero-highlight {
+  background-image: linear-gradient(
+    transparent 58%,
+    rgba(212, 163, 115, 0.55) 58%,
+    rgba(212, 163, 115, 0.55) 92%,
+    transparent 92%
+  );
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.is-intro-complete .hero-highlight {
+  animation: highlight-sweep 1000ms var(--ease-drawer) 1100ms forwards;
+}
+
+@keyframes highlight-sweep {
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+.is-intro-complete .hero-meta > * {
+  animation: soft-rise 800ms var(--ease-drawer) both;
+}
+
+.is-intro-complete .hero-meta > :nth-child(1) { animation-delay: 420ms; }
+.is-intro-complete .hero-meta > :nth-child(2) { animation-delay: 500ms; }
+.is-intro-complete .hero-meta > :nth-child(3) { animation-delay: 580ms; }
+.is-intro-complete .hero-meta > :nth-child(4) { animation-delay: 660ms; }
+.is-intro-complete .hero-meta > :nth-child(5) { animation-delay: 740ms; }
+.is-intro-complete .hero-meta > :nth-child(6) { animation-delay: 820ms; }
+
 @keyframes soft-rise {
   from {
     opacity: 0;
@@ -936,9 +1088,77 @@ button:focus-visible {
 }
 
 .hero-visual {
+  position: relative;
   grid-column: 9 / 13;
   align-self: stretch;
   min-height: 540px;
+}
+
+.hero-card {
+  position: relative;
+  height: 100%;
+  box-shadow: 0 30px 60px -28px rgba(80, 40, 28, 0.35);
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 700ms var(--ease-out);
+}
+
+.hero-glare {
+  position: absolute;
+  inset: 7px;
+  border-radius: 8px;
+  background: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 0%),
+    rgba(255, 250, 244, 0.42),
+    transparent 46%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 500ms var(--ease-out);
+  pointer-events: none;
+}
+
+.hero.is-pointer .hero-glare {
+  opacity: 1;
+}
+
+/* Thin orbits behind the portrait, echoing the intro rings. */
+.hero-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: 150%;
+  aspect-ratio: 1;
+  border: 1px dashed rgba(179, 90, 68, 0.3);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  animation: orbit-spin 90s linear infinite;
+  pointer-events: none;
+}
+
+.hero-orbit.is-inner {
+  width: 118%;
+  border-style: solid;
+  border-color: rgba(196, 164, 132, 0.4);
+  animation-duration: 140s;
+  animation-direction: reverse;
+}
+
+.hero-orbit-dot {
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--terracotta);
+  box-shadow: 0 0 0 5px rgba(179, 90, 68, 0.15);
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .hero-visual-inner {
@@ -978,61 +1198,6 @@ button:focus-visible {
   bottom: 18px;
   padding: 8px 10px;
   background: rgba(252, 249, 248, 0.76);
-}
-
-/* ---------- Proof strip ---------- */
-
-.proof-strip {
-  padding-top: 0;
-  padding-bottom: clamp(2rem, 5vw, 4rem);
-}
-
-.proof-grid {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid rgba(136, 114, 109, 0.34);
-  border-bottom: 1px solid rgba(136, 114, 109, 0.34);
-}
-
-.proof-item {
-  display: grid;
-  align-content: start;
-  gap: 0.4rem;
-  padding: clamp(1.3rem, 2.6vw, 2.2rem) clamp(1rem, 2vw, 1.8rem);
-  border-left: 1px solid rgba(136, 114, 109, 0.22);
-}
-
-.proof-item:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.proof-value {
-  color: var(--charcoal);
-  font-size: clamp(2.6rem, 5vw, 4.6rem);
-  font-weight: 300;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.proof-label {
-  max-width: 22ch;
-  color: var(--muted);
-  font-size: clamp(0.94rem, 1.1vw, 1.05rem);
-  line-height: 1.4;
-}
-
-.proof-source {
-  margin-top: 0.3rem;
-  color: var(--terracotta-dark);
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 /* ---------- Buttons and links ---------- */
@@ -1276,6 +1441,18 @@ button:focus-visible {
 }
 
 /* ---------- Projects ---------- */
+
+.projects {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(196, 164, 132, 0.18) 10%,
+    rgba(196, 164, 132, 0.24) 50%,
+    rgba(196, 164, 132, 0.18) 90%,
+    transparent 100%
+  );
+}
 
 .projects-head {
   padding-bottom: clamp(1rem, 3vw, 2rem);
@@ -1703,9 +1880,59 @@ button:focus-visible {
 
 /* ---------- Contact ---------- */
 
+/* Closing section on deep espresso so the page ends with weight, not more paper. */
 .contact {
+  position: relative;
+  isolation: isolate;
   min-height: 90dvh;
   align-items: center;
+  margin-top: clamp(2rem, 6vw, 5rem);
+  color: var(--cream);
+}
+
+.contact::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: -1;
+  width: 100vw;
+  content: "";
+  border-radius: clamp(24px, 4vw, 48px) clamp(24px, 4vw, 48px) 0 0;
+  background:
+    var(--grain),
+    radial-gradient(48rem 32rem at 78% 18%, rgba(179, 90, 68, 0.42), transparent 70%),
+    radial-gradient(40rem 30rem at 8% 92%, rgba(212, 163, 115, 0.16), transparent 70%),
+    linear-gradient(180deg, #2b211c 0%, var(--espresso) 100%);
+  background-size: 200px 200px, auto, auto, auto;
+  background-blend-mode: soft-light, normal, normal, normal;
+  transform: translateX(-50%);
+}
+
+.contact .section-title {
+  color: var(--cream);
+}
+
+.contact .eyebrow,
+.contact .social-links a {
+  color: var(--ochre);
+}
+
+.contact .contact-copy p:not(.eyebrow) {
+  color: rgba(243, 235, 226, 0.7);
+}
+
+.contact .contact-meta {
+  color: rgba(226, 217, 200, 0.55);
+}
+
+.contact .button.secondary {
+  border-color: rgba(243, 235, 226, 0.55);
+  color: var(--cream);
+}
+
+.contact .button.secondary:hover {
+  background: rgba(243, 235, 226, 0.08);
 }
 
 .contact-meta {
@@ -1723,7 +1950,7 @@ button:focus-visible {
 }
 
 .contact-meta strong {
-  color: var(--charcoal);
+  color: var(--cream);
   font-family: "Outfit", sans-serif;
   font-size: 1rem;
   font-weight: 400;
@@ -1928,28 +2155,6 @@ button:focus-visible {
     padding-top: 0;
   }
 
-  .proof-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .proof-item,
-  .proof-item:first-child {
-    padding: 1.2rem 1rem;
-    border-left: 0;
-  }
-
-  .proof-item:nth-child(even) {
-    border-left: 1px solid rgba(136, 114, 109, 0.22);
-  }
-
-  .proof-item:nth-child(n + 3) {
-    border-top: 1px solid rgba(136, 114, 109, 0.22);
-  }
-
-  .proof-item:nth-child(odd) {
-    padding-left: 0;
-  }
-
   .timeline {
     --gap: 0px;
     --track-x: 5px;
@@ -2002,6 +2207,10 @@ button:focus-visible {
 
   .hero-visual {
     min-height: 420px;
+  }
+
+  .hero-orbit {
+    display: none;
   }
 
   .toolkit-row {

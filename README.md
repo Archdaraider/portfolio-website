@@ -13,7 +13,7 @@ npm run build    # type-check + production build into dist/
 
 ## Page structure
 
-Intro keycap gate → Hero (incoming role, impact stats) → 01 Experience → 02 Projects → 03 About → 04 Toolkit → 05 Contact.
+Intro keycap gate → Hero (incoming role) → 01 Experience → 02 Projects → 03 About → 04 Toolkit → 05 Contact.
 
 - The intro can be entered by clicking the keycap, scrolling, swiping up, pressing Enter/Esc, or "Skip intro". It shows once per browser session; the **J** nav mark replays it.
 - The nav, scroll wheel, and dock live outside `.portfolio-shell` on purpose: the shell animates `transform`/`filter` during the intro, which would otherwise break `position: fixed`.
@@ -25,7 +25,6 @@ Everything content-related lives in `src/data/portfolio.ts`:
 | Export | Drives |
 | --- | --- |
 | `profile` | Hero name, degree, positioning, "Previously" roles, portrait |
-| `stats` | Count-up proof strip under the hero (keep each one sourced) |
 | `experience` | Timeline. Set `status: "Incoming"` on an upcoming role and it also becomes the hero status pill |
 | `projects` | Project panels, links, 3D model and static render |
 | `aboutSlides` | About slideshow photos and captions |

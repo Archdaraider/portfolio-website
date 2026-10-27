@@ -282,11 +282,12 @@ describe("App", () => {
     expect(
       screen.getByRole("heading", { name: /Justin Goh/i, level: 1 }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "AI-focused product builder. I love solving problems, and creating problems to solve.",
-      ),
-    ).toBeInTheDocument();
+    expect(document.querySelector(".hero-positioning")).toHaveTextContent(
+      "AI-focused product builder. I love solving problems, and creating problems to solve.",
+    );
+    expect(document.querySelector(".hero-highlight")).toHaveTextContent(
+      "AI-focused product builder.",
+    );
     expect(
       screen.getByText(
         "I also bridge product and engineering, turning user discovery into practical AI systems.",
@@ -322,15 +323,6 @@ describe("App", () => {
         name: /Incoming Technical Product Management Intern @ Temasek Holdings/i,
       }),
     ).toHaveAttribute("href", "#experience");
-  });
-
-  it("surfaces sourced impact stats under the hero", () => {
-    render(<App />);
-
-    const highlights = screen.getByRole("region", { name: /Impact highlights/i });
-    expect(within(highlights).getByText("~20%", { selector: ".sr-only" })).toBeInTheDocument();
-    expect(within(highlights).getByText("CWT Globelink")).toBeInTheDocument();
-    expect(within(highlights).getByText("30+", { selector: ".sr-only" })).toBeInTheDocument();
   });
 
   it("renders all four open project model stages in order", () => {

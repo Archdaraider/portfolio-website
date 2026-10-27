@@ -10,7 +10,6 @@ import {
 import Lenis from "lenis";
 import {
   MotionConfig,
-  animate,
   motion,
   useMotionValueEvent,
   useReducedMotion,
@@ -26,10 +25,8 @@ import {
   profile,
   projects,
   skillGroups,
-  stats,
   type ExperienceItem,
   type Project,
-  type Stat,
 } from "./data/portfolio";
 
 const ModelCanvas = lazy(() => import("./components/ModelCanvas"));
@@ -227,7 +224,6 @@ function App() {
           }`}
         >
           <Hero />
-          <ProofStrip />
           <Experience />
           <Projects />
           <About />
@@ -297,32 +293,6 @@ function useScrollReveal(prefersReducedMotion: boolean | null) {
     revealElements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, [prefersReducedMotion]);
-}
-
-function useInViewOnce(ref: React.RefObject<Element | null>) {
-  const [isInView, setIsInView] = useState(
-    () => typeof IntersectionObserver === "undefined",
-  );
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -10% 0px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [ref]);
-
-  return isInView;
 }
 
 function ScrollWheel({
@@ -470,11 +440,30 @@ function SiteNav({
 
 function Hero() {
   const prefersReducedMotion = useReducedMotion();
+  const heroRef = useRef<HTMLElement | null>(null);
+  const auroraRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const { scrollY } = useScroll();
   const portraitY = useTransform(scrollY, [0, 900], ["-8%", "-1%"]);
+  const [beforeHighlight, afterHighlight] = profile.positioning.split(
+    profile.positioningHighlight,
+  );
+
+  useHeroPointer(heroRef, auroraRef, cardRef, prefersReducedMotion);
 
   return (
-    <section id="top" className="hero section-shell" aria-labelledby="hero-title">
+    <section
+      id="top"
+      ref={heroRef}
+      className="hero section-shell"
+      aria-labelledby="hero-title"
+    >
+      <div className="hero-aurora" ref={auroraRef} aria-hidden="true">
+        <span className="aurora-blob is-ochre" />
+        <span className="aurora-blob is-terracotta" />
+        <span className="aurora-blob is-olive" />
+        <span className="hero-spotlight" />
+      </div>
       <div className="hero-meta reveal reveal-left">
         <p className="hero-meta-primary">
           <a href={profile.degreeHref} className="hero-degree-link" {...NEW_TAB_LINK_PROPS}>
@@ -509,7 +498,11 @@ function Hero() {
             </span>
           ))}
         </h1>
-        <p className="hero-positioning">{profile.positioning}</p>
+        <p className="hero-positioning">
+          {beforeHighlight}
+          <span className="hero-highlight">{profile.positioningHighlight}</span>
+          {afterHighlight}
+        </p>
         <p className="hero-summary">{profile.summary}</p>
         <div className="hero-actions">
           <a href="#projects" className="button primary magnetic">
@@ -526,8 +519,13 @@ function Hero() {
           </a>
         </div>
       </div>
-      <div className="hero-visual shell-card reveal reveal-right">
-        <div className="hero-visual-inner">
+      <div className="hero-visual reveal reveal-right">
+        <span className="hero-orbit" aria-hidden="true">
+          <span className="hero-orbit-dot" />
+        </span>
+        <span className="hero-orbit is-inner" aria-hidden="true" />
+        <div className="hero-card shell-card" ref={cardRef}>
+          <div className="hero-visual-inner">
           <motion.img
             className="hero-portrait"
             src={profile.portraitImage}
@@ -537,58 +535,75 @@ function Hero() {
             fetchPriority="high"
             style={prefersReducedMotion ? undefined : { y: portraitY }}
           />
-          <div className="orbital-note">Singapore / building in the open</div>
+            <div className="orbital-note">Singapore / building in the open</div>
+          </div>
+          <span className="hero-glare" aria-hidden="true" />
         </div>
       </div>
     </section>
   );
 }
 
-function ProofStrip() {
-  return (
-    <section className="proof-strip section-shell" aria-label="Impact highlights">
-      <ul className="proof-grid reveal">
-        {stats.map((stat) => (
-          <StatTile key={stat.label} stat={stat} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function StatTile({ stat }: { stat: Stat }) {
-  const ref = useRef<HTMLLIElement | null>(null);
-  const isInView = useInViewOnce(ref);
-  const prefersReducedMotion = useReducedMotion();
-  const [count, setCount] = useState(0);
-
+// Cursor-driven hero effects: a warm spotlight in the background and a gentle 3D tilt
+// with glare on the portrait card. Written straight to CSS variables to skip re-renders.
+function useHeroPointer(
+  heroRef: React.RefObject<HTMLElement | null>,
+  auroraRef: React.RefObject<HTMLDivElement | null>,
+  cardRef: React.RefObject<HTMLDivElement | null>,
+  prefersReducedMotion: boolean | null,
+) {
   useEffect(() => {
-    if (!isInView || prefersReducedMotion) {
+    const hero = heroRef.current;
+    const aurora = auroraRef.current;
+    const card = cardRef.current;
+    const finePointer =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!hero || !aurora || !card || prefersReducedMotion || !finePointer) {
       return;
     }
-    const controls = animate(0, stat.value, {
-      duration: 1.4,
-      ease: [0.23, 1, 0.32, 1],
-      onUpdate: (value) => setCount(Math.round(value)),
-    });
-    return () => controls.stop();
-  }, [isInView, prefersReducedMotion, stat.value]);
 
-  const shown = prefersReducedMotion ? stat.value : count;
-  const fullValue = `${stat.prefix ?? ""}${stat.value}${stat.suffix ?? ""}`;
+    let frame = 0;
+    let pointer: { x: number; y: number } | null = null;
+    const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
-  return (
-    <li ref={ref} className="proof-item">
-      <strong className="proof-value" aria-hidden="true">
-        {stat.prefix}
-        {shown}
-        {stat.suffix}
-      </strong>
-      <span className="sr-only">{fullValue}</span>
-      <span className="proof-label">{stat.label}</span>
-      <span className="proof-source">{stat.source}</span>
-    </li>
-  );
+    const apply = () => {
+      frame = 0;
+      if (!pointer) return;
+      const field = aurora.getBoundingClientRect();
+      const heroBox = hero.getBoundingClientRect();
+      const cardBox = card.getBoundingClientRect();
+      aurora.style.setProperty("--mx", `${pointer.x - field.left}px`);
+      aurora.style.setProperty("--my", `${pointer.y - field.top}px`);
+      const dx = (pointer.x - (cardBox.left + cardBox.width / 2)) / heroBox.width;
+      const dy = (pointer.y - (cardBox.top + cardBox.height / 2)) / heroBox.height;
+      card.style.setProperty("--ry", `${clamp(dx * 16, 7)}deg`);
+      card.style.setProperty("--rx", `${clamp(-dy * 12, 5)}deg`);
+      card.style.setProperty("--gx", `${((pointer.x - cardBox.left) / cardBox.width) * 100}%`);
+      card.style.setProperty("--gy", `${((pointer.y - cardBox.top) / cardBox.height) * 100}%`);
+    };
+
+    const onMove = (event: PointerEvent) => {
+      pointer = { x: event.clientX, y: event.clientY };
+      if (!frame) frame = requestAnimationFrame(apply);
+    };
+    const onEnter = () => hero.classList.add("is-pointer");
+    const onLeave = () => {
+      hero.classList.remove("is-pointer");
+      card.style.setProperty("--rx", "0deg");
+      card.style.setProperty("--ry", "0deg");
+    };
+
+    hero.addEventListener("pointermove", onMove);
+    hero.addEventListener("pointerenter", onEnter);
+    hero.addEventListener("pointerleave", onLeave);
+    return () => {
+      cancelAnimationFrame(frame);
+      hero.removeEventListener("pointermove", onMove);
+      hero.removeEventListener("pointerenter", onEnter);
+      hero.removeEventListener("pointerleave", onLeave);
+    };
+  }, [heroRef, auroraRef, cardRef, prefersReducedMotion]);
 }
 
 function Experience() {
